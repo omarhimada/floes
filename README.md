@@ -1,5 +1,5 @@
 # FloES
-FloES is a layer on top of Nest &amp; Elasticsearch.Net.AWS, with logging support, that abstracts away common operations such as writing &amp; finding documents
+FloES is a generic wrapper for common operations, such as writing and reading documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
 
 **Example usage:**
 ````C#
