@@ -11,6 +11,8 @@
     <Summary>FloES is a layer on top of Nest &amp; Elasticsearch.Net.AWS, with logging support, that abstracts away common operations such as writing &amp; finding documents</Summary>
     <PackageTags>elasticsearch nest aws</PackageTags>
     <Title>FloES</Title>
+    <RepositoryUrl>https://github.com/omarhimada/floes</RepositoryUrl>
+    <PackageId>FloES</PackageId>
     <Description>FloES is a layer on top of Nest &amp; Elasticsearch.Net.AWS, with logging support, that abstracts away common operations such as writing &amp; finding documents</Description>
   </PropertyGroup>
 
