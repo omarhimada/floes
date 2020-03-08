@@ -2,4 +2,7 @@
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
 
-/FloES/FloES/obj
+*.csproj.user
+/bin
+/obj
+.vs
