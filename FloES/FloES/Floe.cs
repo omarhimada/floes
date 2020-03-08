@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 namespace FloES
 {
     /// <summary>
-    /// Wrapper for an Nest ElasticClient with simplified operations and built-in logging support
+    /// Wrapper for a Nest ElasticClient with simplified operations and built-in logging support
     /// </summary>
     public class Floe
     {
@@ -59,8 +59,8 @@ namespace FloES
         private string IndexToWriteTo(string index = null)
         {
             string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
-            string suffix = _rollingDate ? DateTime.UtcNow.ToString("yyyy.MM.dd") : string.Empty;
-            return $"{prefix}-{suffix}";
+            string suffix = _rollingDate ? $"{DateTime.UtcNow.ToString("yyyy.MM.dd")}-" : string.Empty;
+            return $"{prefix}{suffix}";
         }
 
         #region Constructors
