@@ -209,7 +209,7 @@ namespace FloES
         /// Search for documents
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "CustomerId" or "Animal.Name")</param>
+        /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">The value to search for</param>
         /// <param name="searchToday">(Optional) whether or not to limit the search to the rolling date - default is false</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
