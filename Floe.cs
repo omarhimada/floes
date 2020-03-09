@@ -197,6 +197,19 @@ namespace FloES
         }
 
         /// <summary>
+        /// Write many documents asynchronously. Uses Task.WhenAll and the Write method
+        /// </summary>
+        /// <typeparam name="T">Index POCO</typeparam>
+        /// <param name="documents">Documents to write to the Elasticsearch index</param>
+        /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
+        public async Task WriteMany<T>(
+          IEnumerable<T> documents,
+          string index = null)
+        {
+            await Task.WhenAll(documents.Select(t => Write(t)));
+        }
+
+        /// <summary>
         /// Write the document to an Elasticsearch index. Uses BulkRequests
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
