@@ -36,4 +36,4 @@ IEnumerable<Order> orders = await _ordersFloe.List<Order>();
 IEnumerable<Order> orders = await _ordersFloe.List<Order>(listToday: true);
 
 // Search for orders of SKU 100
-IEnumerable<Order> orders = await _ordersFloe.Search<Order>("SKU", 100);
+IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
