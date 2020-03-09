@@ -1,6 +1,8 @@
 # FloES
 FloES is a generic wrapper for common Elasticsearch operations, such as writing and reading documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
 
+**https://www.nuget.org/packages/FloES**
+
 **Example usage:**
 ````C#
 // Your AWSOptions
