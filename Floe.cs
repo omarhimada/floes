@@ -58,10 +58,17 @@ namespace FloES
         /// <summary>
         /// Build the 'Index' string for the BulkRequest
         /// </summary>
-        private string IndexToWriteTo(string index = null)
+        private string IndexToUse(string index = null)
         {
             string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
             string suffix = _rollingDate ? $"{DateTime.UtcNow:yyyy.MM.dd}-" : string.Empty;
+            return $"{prefix}{suffix}";
+        }
+
+        private string IndexToSearch(bool searchToday, string index = null)
+        {
+            string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
+            string suffix = searchToday ? $"{DateTime.UtcNow:yyyy.MM.dd}-" : string.Empty;
             return $"{prefix}{suffix}";
         }
 
@@ -153,13 +160,15 @@ namespace FloES
         /// List all documents in an index asynchronously using the scroll API
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
+        /// <param name="listToday">(Optional) whether or not to list using the rolling date of the index - default is false</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> List<T>(
+          bool listToday = false,
           string scrollTime = "60s",
           string index = null) where T : class
         {
-            string indexToScroll = IndexToWriteTo(index);
+            string indexToScroll = IndexToSearch(listToday, index);
 
             ISearchResponse<T> searchResponse =
               await _client.SearchAsync<T>(sd => sd
@@ -174,13 +183,13 @@ namespace FloES
             bool continueScrolling = true;
             while (continueScrolling)
             {
-                if (!searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
+                if (searchResponse.Documents != null && !searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
                 {
                     _logger?.LogError($"Search error: {searchResponse.ServerError.Error.Reason}");
                     break;
                 }
 
-                if (!searchResponse.Documents.Any())
+                if (searchResponse.Documents != null && !searchResponse.Documents.Any())
                 {
                     continueScrolling = false;
                 }
@@ -194,6 +203,38 @@ namespace FloES
             await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
 
             return results;
+        }
+
+        /// <summary>
+        /// Search for documents
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "CustomerId" or "Animal.Name")</param>
+        /// <param name="valueToSearch">The value to search for</param>
+        /// <param name="searchToday">(Optional) whether or not to limit the search to the rolling date - default is false</param>
+        /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
+        public async Task<IEnumerable<T>> Search<T>(
+          string fieldToSearch,
+          object valueToSearch,
+          bool searchToday = false,
+          string index = null) where T : class
+        {
+            string indexToSearch = IndexToSearch(searchToday, index);
+
+            ISearchResponse<T> searchResponse =
+              await _client.SearchAsync<T>(s =>
+                s.Size(10000).Index(indexToSearch).Query(q =>
+                  q.Match(c =>
+                    c.Field(fieldToSearch).Query(valueToSearch.ToString()))));
+
+            if (searchResponse?.Documents != null && !searchResponse.IsValid)
+            {
+                return searchResponse.Documents;
+            }
+
+            _logger?.LogError($"Search error: {searchResponse?.ServerError.Error.Reason}");
+
+            return null;
         }
 
         /// <summary>
@@ -216,12 +257,12 @@ namespace FloES
         /// <param name="document">Document to write to the Elasticsearch index</param>
         /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
         public async Task Write<T>(
-            T document,
-            string index = null)
+          T document,
+          string index = null)
         {
             _documents.Add(document);
 
-            string indexToWriteTo = IndexToWriteTo(index);
+            string indexToWriteTo = IndexToUse(index);
 
             try
             {
