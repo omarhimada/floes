@@ -29,7 +29,7 @@ Order order = _ordersFloe.Find<Order>(id: "1");
 // List all orders in the last 24 hours
 IEnumerable<Order> orders = await _ordersFloe.List<Order>();
 
-// To list all orders in the index instantiate the Floe using rollingDate: false
+// (To list all orders in the index instantiate the Floe using rollingDate: false)
 ````
 **Example writing many documents asynchronously:**
 ````C#
