@@ -20,9 +20,20 @@ _ordersFloe = new Floe(
     numberOfBulkDocumentsToWriteAtOnce: 0,
     rollingDate: true);
     
-// Use the Floe to write an 'Order' document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
-_ordersFloe.Write<Order>(order);
+// Write an 'Order' document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
+await _ordersFloe.Write<Order>(order);
 
-// Use the Floe to get a document
-Order order = _ordersFloe.Find<Order>(id: "1");
-````
+// Write many orders asynchronously
+await _ordersFloe.WriteMany<Order>(collectionOfOrders);
+
+// Get an order
+Order order = await _ordersFloe.Find<Order>(id: "1");
+
+// List all orders
+IEnumerable<Order> orders = await _ordersFloe.List<Order>();
+
+// List all orders for today
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listToday: true);
+
+// Search for orders of SKU 100
+IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
