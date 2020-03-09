@@ -1,5 +1,5 @@
 # FloES
-FloES is a generic wrapper for common operations, such as writing and reading documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
+FloES is a generic wrapper for common Elasticsearch operations, such as writing and reading documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
 
 **Example usage:**
 ````C#
