@@ -177,6 +177,7 @@ namespace FloES
                 if (!searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
                 {
                     _logger?.LogError($"Search error: {searchResponse.ServerError.Error.Reason}");
+                    break;
                 }
 
                 if (!searchResponse.Documents.Any())
