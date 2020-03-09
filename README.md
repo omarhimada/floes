@@ -26,3 +26,8 @@ _ordersFloe.Write<Order>(order);
 // Use the Floe to get a document
 Order order = _ordersFloe.Find<Order>(id: "1");
 ````
+**Example writing many documents asynchronously:**
+````C#
+// WriteMany uses Task.WaitAll and the Write method to write many documents asynchronously
+await _ordersFloe.WriteMany<IEnumerable<Order>>(collectionOfOrders);
+````
