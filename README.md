@@ -3,7 +3,7 @@ FloES is a generic wrapper for common Elasticsearch operations, such as writing 
 
 **https://www.nuget.org/packages/FloES**
 
-**Example usage:**
+**Example usage: write, find, list and search for 'Orders' (e.g.: eCommerce website)**
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
