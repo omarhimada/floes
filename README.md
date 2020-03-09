@@ -20,14 +20,19 @@ _ordersFloe = new Floe(
     numberOfBulkDocumentsToWriteAtOnce: 0,
     rollingDate: true);
     
-// Use the Floe to write an 'Order' document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
+// Write an 'Order' document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
 _ordersFloe.Write<Order>(order);
 
-// Use the Floe to get a document
+// Get an order
 Order order = _ordersFloe.Find<Order>(id: "1");
+
+// List all orders in the last 24 hours
+IEnumerable<Order> orders = await _ordersFloe.List<Order>();
+
+// To list all orders in the index instantiate the Floe using rollingDate: false
 ````
 **Example writing many documents asynchronously:**
 ````C#
 // WriteMany uses Task.WaitAll and the Write method to write many documents asynchronously
-await _ordersFloe.WriteMany<IEnumerable<Order>>(collectionOfOrders);
+await _ordersFloe.WriteMany<Order>(collectionOfOrders);
 ````
