@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Amazon.Extensions.NETCore.Setup;
+﻿using Amazon.Extensions.NETCore.Setup;
 using Elasticsearch.Net;
 using Elasticsearch.Net.Aws;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace FloES
 {
@@ -45,6 +46,7 @@ namespace FloES
         /// Default number of documents to write to Elasticsearch in each BulkRequest
         /// (5 is a safe number)
         /// </summary>
+        // ReSharper disable once InconsistentNaming
         private const int _defaultNumberOfBulkDocumentsToWriteAtOnce = 5;
 
         /// <summary>
@@ -59,7 +61,7 @@ namespace FloES
         private string IndexToWriteTo(string index = null)
         {
             string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
-            string suffix = _rollingDate ? $"{DateTime.UtcNow.ToString("yyyy.MM.dd")}-" : string.Empty;
+            string suffix = _rollingDate ? $"{DateTime.UtcNow:yyyy.MM.dd}-" : string.Empty;
             return $"{prefix}{suffix}";
         }
 
@@ -148,9 +150,55 @@ namespace FloES
         #endregion
 
         /// <summary>
+        /// List all documents in an index asynchronously using the scroll API
+        /// </summary>
+        /// <typeparam name="T">Index POCO</typeparam>
+        /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
+        /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
+        public async Task<IEnumerable<T>> List<T>(
+          string scrollTime = "60s",
+          string index = null) where T : class
+        {
+            string indexToScroll = IndexToWriteTo(index);
+
+            ISearchResponse<T> searchResponse =
+              await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .From(0)
+                .Take(1000)
+                .MatchAll()
+                .Scroll(scrollTime));
+
+            List<T> results = new List<T>();
+
+            bool continueScrolling = true;
+            while (continueScrolling)
+            {
+                if (!searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
+                {
+                    _logger?.LogError($"Search error: {searchResponse.ServerError.Error.Reason}");
+                }
+
+                if (!searchResponse.Documents.Any())
+                {
+                    continueScrolling = false;
+                }
+                else
+                {
+                    results.AddRange(searchResponse.Documents);
+                    searchResponse = await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+                }
+            }
+
+            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+
+            return results;
+        }
+
+        /// <summary>
         /// Write the document to an Elasticsearch index. Uses BulkRequests
         /// </summary>
-        /// <typeparam name="T">Generic document type</typeparam>
+        /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="document">Document to write to the Elasticsearch index</param>
         /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
         public async Task Write<T>(
@@ -163,24 +211,13 @@ namespace FloES
 
             try
             {
-                // Index to write the documents to 
-                if (string.IsNullOrEmpty(index))
-                {
-                    if (string.IsNullOrEmpty(_defaultIndex))
-                    {
-                        throw new ArgumentException("No index was provided and no default index has been set to fall back to");
-                    }
-
-                    index = _defaultIndex;
-                }
-
                 // Ensure we are only making requests when we have enough documents
                 if (_documents.Count > _numberOfBulkDocumentsToWriteAtOnce)
                 {
                     BulkDescriptor bulkDescriptor = new BulkDescriptor();
                     bulkDescriptor
-                        .IndexMany(_documents)
-                        .Index(indexToWriteTo);
+                      .IndexMany(_documents)
+                      .Index(indexToWriteTo);
 
                     BulkResponse bulkResponse = await _client.BulkAsync(bulkDescriptor);
 
@@ -209,29 +246,19 @@ namespace FloES
         /// <summary>
         /// Find a document by its ID
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="id">ID of the document</param>
-        /// <param name="index">(Optional) index to find in - if none provided the default index will be used</param>
         /// <returns>Null if no document was found</returns>
-        public async Task<T> Find<T>(
-            string id,
-            string index = null) where T : class
+        public async Task<T> Find<T>(string id) where T : class
         {
-            if (string.IsNullOrEmpty(index)) index = _defaultIndex;
-
-            // Include wildcard * to support rolling dates
-            index = $"{index}*";
-
             GetResponse<T> response = await _client.GetAsync<T>(id);
 
             if (response.Found)
             {
                 return response.Source;
             }
-            else
-            {
-                _logger?.LogError($"Floe Find could not find document of type {typeof(T).Name} with ID {id}");
-            }
+
+            _logger?.LogError($"Floe Find could not find document of type {typeof(T).Name} with ID {id}");
 
             return null;
         }

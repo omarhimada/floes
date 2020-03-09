@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <Version>1.0.2</Version>
+    <Version>1.0.4</Version>
     <PackOnBuild>true</PackOnBuild>
     <Authors>Omar Himada</Authors>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -14,12 +14,13 @@
     <Title>FloES</Title>
     <RepositoryUrl>https://github.com/omarhimada/floes</RepositoryUrl>
     <PackageId>FloES</PackageId>
-    <Description>FloES is a layer on top of Nest &amp; Elasticsearch.Net.AWS, with logging support, that abstracts away common operations such as writing &amp; finding documents</Description>
+    <Description>FloES is a generic wrapper for common Elasticsearch operations, such as writing and reading documents, using Nest &amp; Elasticsearch.Net.AWS. Includes ILogger support</Description>
   </PropertyGroup>
 
   <PropertyGroup>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<AssemblyVersion>1.0.2.0</AssemblyVersion>
+		<AssemblyVersion>1.0.4.0</AssemblyVersion>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
   <ItemGroup>
