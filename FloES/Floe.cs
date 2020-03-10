@@ -328,8 +328,13 @@ namespace FloES
             {
                 string exceptionLogPrefix = $"Floe Write threw an exception while trying to write to index {indexToWriteTo}";
 
-                _logger?.LogError(
-                    $"{exceptionLogPrefix}{Environment.NewLine}{exception.Message}{Environment.NewLine}{exception.StackTrace}");
+                string errorMessage =
+                  $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
+
+                _logger?.LogError(errorMessage);
+
+                // ReSharper disable once PossibleIntendedRethrow
+                throw exception;
             }
         }
 
