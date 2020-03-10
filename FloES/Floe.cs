@@ -65,12 +65,7 @@ namespace FloES
             return $"{prefix}{suffix}";
         }
 
-        private string IndexToSearch(bool searchToday, string index = null)
-        {
-            string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
-            string suffix = searchToday ? $"{DateTime.UtcNow:yyyy.MM.dd}-" : string.Empty;
-            return $"{prefix}{suffix}";
-        }
+        private string IndexToSearch(string index = null) => string.IsNullOrEmpty(index) ? _defaultIndex : index;
 
         #region Constructors
         /// <summary>
@@ -168,15 +163,33 @@ namespace FloES
           string scrollTime = "60s",
           string index = null) where T : class
         {
-            string indexToScroll = IndexToSearch(listToday, index);
-
-            ISearchResponse<T> searchResponse =
-              await _client.SearchAsync<T>(sd => sd
-                .Index(indexToScroll)
-                .From(0)
-                .Take(1000)
-                .MatchAll()
-                .Scroll(scrollTime));
+            string indexToScroll = IndexToSearch(index);
+            ISearchResponse<T> searchResponse;
+            if (!listToday)
+            {
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .MatchAll()
+                    .Scroll(scrollTime));
+            }
+            else
+            {
+                // Scroll for the last day only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(query =>
+                      query.DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(
+                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(1)))))
+                    .Scroll(scrollTime));
+            }
 
             List<T> results = new List<T>();
 
@@ -219,13 +232,31 @@ namespace FloES
           bool searchToday = false,
           string index = null) where T : class
         {
-            string indexToSearch = IndexToSearch(searchToday, index);
+            string indexToSearch = IndexToSearch(index);
 
-            ISearchResponse<T> searchResponse =
-              await _client.SearchAsync<T>(s =>
-                s.Size(10000).Index(indexToSearch).Query(q =>
-                  q.Match(c =>
-                    c.Field(fieldToSearch).Query(valueToSearch.ToString()))));
+            ISearchResponse<T> searchResponse;
+            if (!searchToday)
+            {
+                searchResponse =
+                  await _client.SearchAsync<T>(s => s
+                    .Size(10000)
+                    .Index(indexToSearch)
+                    .Query(q =>
+                      q.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString()))));
+            }
+            else
+            {
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToSearch)
+                    .Query(query =>
+                      query.DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(
+                          DateTime.UtcNow.Subtract(TimeSpan.FromDays(1))))));
+            }
 
             if (searchResponse?.Documents != null && !searchResponse.IsValid)
             {
@@ -267,7 +298,7 @@ namespace FloES
             try
             {
                 // Ensure we are only making requests when we have enough documents
-                if (_documents.Count > _numberOfBulkDocumentsToWriteAtOnce)
+                if (_documents.Count >= _numberOfBulkDocumentsToWriteAtOnce)
                 {
                     BulkDescriptor bulkDescriptor = new BulkDescriptor();
                     bulkDescriptor

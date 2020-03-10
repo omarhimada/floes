@@ -3,6 +3,8 @@
 ################################################################################
 
 *.csproj.user
-/bin
-/obj
 .vs
+/FloES/bin
+/FloES/obj
+/FloES/.vs
+/FloES.Tests

@@ -1,7 +1,10 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FloES", "FloES.csproj", "{95137051-A885-4D59-9725-99A7FD5F6F8D}"
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FloES", "FLoES\FloES.csproj", "{95137051-A885-4D59-9725-99A7FD5F6F8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FloES.Tests", "FloES.Tests\FloES.Tests.csproj", "{14D0F423-4D20-46AA-96EC-6FF78268EBC9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,5 +16,15 @@ Global
 		{95137051-A885-4D59-9725-99A7FD5F6F8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95137051-A885-4D59-9725-99A7FD5F6F8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95137051-A885-4D59-9725-99A7FD5F6F8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{14D0F423-4D20-46AA-96EC-6FF78268EBC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{14D0F423-4D20-46AA-96EC-6FF78268EBC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{14D0F423-4D20-46AA-96EC-6FF78268EBC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{14D0F423-4D20-46AA-96EC-6FF78268EBC9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {E8C91ECA-3DF2-420F-8AE1-15D76B90B30D}
 	EndGlobalSection
 EndGlobal
