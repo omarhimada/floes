@@ -3,7 +3,7 @@ FloES is a generic wrapper for common Elasticsearch operations, such as writing 
 
 **https://www.nuget.org/packages/FloES**
 
-**Example usage:**
+**Example usage: write, find, list and search for 'Orders' (e.g.: eCommerce website)**
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
@@ -12,7 +12,7 @@ AWSOptions awsOptions = new AWSOptions
     Region = Amazon.RegionEndpoint.CACentral1
 };
 
-// Instantiate a new Floe
+// Instantiate a new Floe for our 'Order' documents
 _ordersFloe = new Floe(
     awsOptions: awsOptions,
     esClusterUri: new Uri(_config.AwsElasticsearchEndpoint),
@@ -20,7 +20,7 @@ _ordersFloe = new Floe(
     numberOfBulkDocumentsToWriteAtOnce: 0,
     rollingDate: true);
     
-// Write an 'Order' document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
+// Write an order document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
 await _ordersFloe.Write<Order>(order);
 
 // Write many orders asynchronously
