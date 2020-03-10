@@ -56,7 +56,7 @@ namespace FloES
         #endregion
 
         /// <summary>
-        /// Build the 'Index' string for the BulkRequest
+        /// Build the 'Index' string for the BulkRequests
         /// </summary>
         private string IndexToWriteTo(string index = null)
         {
@@ -65,6 +65,9 @@ namespace FloES
             return $"{prefix}{suffix}";
         }
 
+        /// <summary>
+        /// Build the 'Index' string for the scrolls and searches
+        /// </summary>
         private string IndexToSearch(string index = null) => string.IsNullOrEmpty(index) ? $"{_defaultIndex}*" : $"{index}*";
 
         #region Constructors
@@ -198,7 +201,7 @@ namespace FloES
             {
                 if (searchResponse.Documents != null && !searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
                 {
-                    _logger?.LogError($"Search error: {searchResponse.ServerError.Error.Reason}");
+                    _logger?.LogError($"~ ~ ~ Floe received an error while listing (scrolling) {searchResponse.ServerError.Error.Reason}");
                     break;
                 }
 
@@ -263,7 +266,7 @@ namespace FloES
                 return searchResponse.Documents;
             }
 
-            _logger?.LogError($"Search error: {searchResponse?.ServerError.Error.Reason}");
+            _logger?.LogError($"~ ~ ~ Floe received an error while searching for [{fieldToSearch},{valueToSearch}]: {searchResponse?.ServerError.Error.Reason}");
 
             return null;
         }
@@ -296,7 +299,7 @@ namespace FloES
 
                     if (bulkResponse.Errors)
                     {
-                        string errorLogPrefix = $"Floe Write received an error while trying to write to index {indexToWriteTo}";
+                        string errorLogPrefix = $"~ ~ ~ Floe received an error while trying to write to index {indexToWriteTo}";
 
                         string errorMessage =
                           $"{errorLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(bulkResponse.Errors)}";
@@ -313,7 +316,7 @@ namespace FloES
             }
             catch (Exception exception)
             {
-                string exceptionLogPrefix = $"Floe Write threw an exception while trying to write to index {indexToWriteTo}";
+                string exceptionLogPrefix = $"~~~ Floe threw an exception while trying to write to index {indexToWriteTo}";
 
                 string errorMessage =
                   $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
@@ -337,12 +340,48 @@ namespace FloES
 
             if (response.Found)
             {
+                _logger?.LogInformation($"~ ~ ~ Floe found document of type {typeof(T).Name} with ID {id}");
+
                 return response.Source;
             }
 
-            _logger?.LogError($"Floe Find could not find document of type {typeof(T).Name} with ID {id}");
+            _logger?.LogInformation($"~ ~ ~ Floe could not find document of type {typeof(T).Name} with ID {id}");
 
             return null;
+        }
+
+        /// <summary>
+        /// Delete all indices
+        /// </summary>
+        /// <returns>True if all indices were successfully deleted</returns>
+        public async Task<bool> DeleteAllIndices()
+        {
+            _logger?.LogInformation($"~ ~ ~ Floe is deleting all indices");
+
+            List<bool> indexDeletions = new List<bool>();
+            foreach (KeyValuePair<IndexName, IndexState> index
+            in (await _client.Indices.GetAsync(new GetIndexRequest(Indices.All))).Indices)
+            {
+                indexDeletions.Add(await DeleteIndex(index.Key.Name));
+            }
+
+            return indexDeletions.All(indexDeletion => true);
+        }
+
+        /// <summary>
+        /// Delete an index
+        /// </summary>
+        /// <param name="index">Index name</param>
+        public async Task<bool> DeleteIndex(string index)
+        {
+            if (!string.IsNullOrEmpty(index))
+            {
+                _logger?.LogInformation($"~ ~ ~ Floe is deleting index {index}");
+
+                return (await _client.Indices.DeleteAsync(index)).IsValid;
+            }
+
+            return false;
         }
     }
 }
