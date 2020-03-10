@@ -17,14 +17,12 @@ _ordersFloe = new Floe(
     awsOptions: awsOptions,
     esClusterUri: new Uri(_config.AwsElasticsearchEndpoint),
     defaultIndex: "idx-orders",
-    numberOfBulkDocumentsToWriteAtOnce: 0,
+    numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
     rollingDate: true);
     
 // Write an order document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
+// You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage with a smart numberOfBulkDocumentsToWriteAtOnce choice)
 await _ordersFloe.Write<Order>(order);
-
-// Write many orders asynchronously
-await _ordersFloe.WriteMany<Order>(collectionOfOrders);
 
 // Get an order
 Order order = await _ordersFloe.Find<Order>(id: "1");
@@ -37,3 +35,13 @@ IEnumerable<Order> orders = await _ordersFloe.List<Order>(listToday: true);
 
 // Search for orders of SKU 100
 IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
+
+// Delete all indices and then dispose of the Floe capable of doing so
+{
+    await using Floe temporaryDeleteAllIndicesFloe = new Floe(
+      awsOptions: _awsOptions,
+      esClusterUri: new Uri(_config.AwsElasticsearchEndpoint));
+
+    await temporaryDeleteIndexFloe.DeleteAllIndices();
+}
+````
