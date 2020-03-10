@@ -65,7 +65,7 @@ namespace FloES
             return $"{prefix}{suffix}";
         }
 
-        private string IndexToSearch(string index = null) => string.IsNullOrEmpty(index) ? _defaultIndex : index;
+        private string IndexToSearch(string index = null) => string.IsNullOrEmpty(index) ? $"{_defaultIndex}*" : $"{index}*";
 
         #region Constructors
         /// <summary>
