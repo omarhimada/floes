@@ -12,20 +12,22 @@ using System.Threading.Tasks;
 namespace FloES
 {
     /// <summary>
-    /// Wrapper for a Nest ElasticClient with simplified operations and built-in logging support
+    /// Wrapper for a Nest ElasticClient with common Elasticsearch operations
+    /// - can use with 'await using', and includes ILogger support
     /// </summary>
-    public class Floe
+    public class Floe : IAsyncDisposable, IDisposable
     {
-        /// <summary>
-        /// The single instance of ElasticClient that lives as long as this Floe object does
-        /// </summary>
-        private readonly ElasticClient _client;
+        private bool _disposed;
 
-        #region Configurable private fields
         /// <summary>
         /// Optional logger
         /// </summary>
         private readonly ILogger<Floe> _logger;
+
+        /// <summary>
+        /// The single instance of ElasticClient that lives as long as this Floe object does
+        /// </summary>
+        private readonly ElasticClient _client;
 
         /// <summary>
         /// Collection of documents to write to an Elasticsearch index
@@ -53,7 +55,6 @@ namespace FloES
         /// Number of documents to write to Elasticsearch in each BulkRequest
         /// </summary>
         private readonly int _numberOfBulkDocumentsToWriteAtOnce;
-        #endregion
 
         /// <summary>
         /// Build the 'Index' string for the BulkRequests
@@ -383,5 +384,34 @@ namespace FloES
 
             return false;
         }
+
+        #region Disposable implementation
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+        }
+
+        public virtual ValueTask DisposeAsync()
+        {
+            try
+            {
+                Dispose();
+                return default;
+            }
+            catch (Exception exception)
+            {
+                return new ValueTask(Task.FromException(exception));
+            }
+        }
+        #endregion
     }
 }
