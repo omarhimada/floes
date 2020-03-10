@@ -58,10 +58,10 @@ namespace FloES
         /// <summary>
         /// Build the 'Index' string for the BulkRequest
         /// </summary>
-        private string IndexToUse(string index = null)
+        private string IndexToWriteTo(string index = null)
         {
             string prefix = string.IsNullOrEmpty(index) ? _defaultIndex : index;
-            string suffix = _rollingDate ? $"{DateTime.UtcNow:yyyy.MM.dd}-" : string.Empty;
+            string suffix = _rollingDate ? $"-{DateTime.UtcNow:yyyy.MM.dd}" : string.Empty;
             return $"{prefix}{suffix}";
         }
 
@@ -293,7 +293,7 @@ namespace FloES
         {
             _documents.Add(document);
 
-            string indexToWriteTo = IndexToUse(index);
+            string indexToWriteTo = IndexToWriteTo(index);
 
             try
             {
@@ -311,8 +311,12 @@ namespace FloES
                     {
                         string errorLogPrefix = $"Floe Write received an error while trying to write to index {indexToWriteTo}";
 
-                        _logger?.LogError(
-                            $"{errorLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(bulkResponse.Errors)}");
+                        string errorMessage =
+                          $"{errorLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(bulkResponse.Errors)}";
+
+                        _logger?.LogError(errorMessage);
+
+                        throw new Exception(errorMessage);
                     }
                     else
                     {
