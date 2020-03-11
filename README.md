@@ -17,6 +17,7 @@ _ordersFloe = new Floe(
     awsOptions: awsOptions,
     esClusterUri: new Uri(_config.AwsElasticsearchEndpoint),
     defaultIndex: "idx-orders",
+    logger: _logger, // optionally pass in your ILogger to get automatic logs
     numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
     rollingDate: true);
     
