@@ -198,7 +198,7 @@ namespace FloES
             List<T> results = new List<T>();
 
             bool continueScrolling = true;
-            while (continueScrolling)
+            while (continueScrolling && searchResponse != null)
             {
                 if (searchResponse.Documents != null && !searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
                 {
