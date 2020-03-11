@@ -202,7 +202,7 @@ namespace FloES
             {
                 if (searchResponse.Documents != null && !searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
                 {
-                    _logger?.LogError($"~ ~ ~ Floe received an error while listing (scrolling) {searchResponse.ServerError.Error.Reason}");
+                    _logger?.LogError($"~ ~ ~ Floe received an error while listing (scrolling) {searchResponse.ServerError?.Error?.Reason}");
                     break;
                 }
 
@@ -217,7 +217,10 @@ namespace FloES
                 }
             }
 
-            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+            if (searchResponse != null)
+            {
+                await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+            }
 
             return results;
         }
@@ -267,7 +270,7 @@ namespace FloES
                 return searchResponse.Documents;
             }
 
-            _logger?.LogError($"~ ~ ~ Floe received an error while searching for [{fieldToSearch},{valueToSearch}]: {searchResponse?.ServerError.Error.Reason}");
+            _logger?.LogError($"~ ~ ~ Floe received an error while searching for [{fieldToSearch},{valueToSearch}]: {searchResponse?.ServerError?.Error?.Reason}");
 
             return null;
         }
