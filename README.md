@@ -13,7 +13,7 @@ AWSOptions awsOptions = new AWSOptions
 };
 
 // Instantiate a new Floe for our 'Order' documents
-_ordersFloe = new Floe(
+_ordersFloe = new Floe<ExampleOrdersService>(
     awsOptions: awsOptions,
     esClusterUri: new Uri(_config.AwsElasticsearchEndpoint),
     defaultIndex: "idx-orders",
@@ -39,7 +39,7 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
 
 // Delete all indices and then dispose of the Floe capable of doing so
 {
-    await using Floe temporaryDeleteAllIndicesFloe = new Floe(
+    await using Floe<ExampleAdminService> temporaryDeleteAllIndicesFloe = new Floe(
       awsOptions: _awsOptions,
       esClusterUri: new Uri(_config.AwsElasticsearchEndpoint));
 
