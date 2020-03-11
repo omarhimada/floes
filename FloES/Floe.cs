@@ -15,14 +15,14 @@ namespace FloES
     /// Wrapper for a Nest ElasticClient with common Elasticsearch operations
     /// - can use with 'await using', and includes ILogger support
     /// </summary>
-    public class Floe : IAsyncDisposable, IDisposable
+    public class Floe<T> : IAsyncDisposable, IDisposable
     {
         private bool _disposed;
 
         /// <summary>
         /// Optional logger
         /// </summary>
-        private readonly ILogger<Floe> _logger;
+        private readonly ILogger<T> _logger;
 
         /// <summary>
         /// The single instance of ElasticClient that lives as long as this Floe object does
@@ -88,7 +88,7 @@ namespace FloES
             string defaultIndex = null,
             int numberOfBulkDocumentsToWriteAtOnce = _defaultNumberOfBulkDocumentsToWriteAtOnce,
             bool rollingDate = false,
-            ILogger<Floe> logger = null)
+            ILogger<T> logger = null)
         {
             if (!string.IsNullOrEmpty(defaultIndex))
             {
@@ -125,7 +125,7 @@ namespace FloES
             string defaultIndex = null,
             int numberOfBulkDocumentsToWriteAtOnce = _defaultNumberOfBulkDocumentsToWriteAtOnce,
             bool rollingDate = false,
-            ILogger<Floe> logger = null)
+            ILogger<T> logger = null)
         {
             if (awsOptions == null)
             {
@@ -352,7 +352,7 @@ namespace FloES
         }
 
         /// <summary>
-        /// Delete all indices
+        /// Delete all indices (does not delete system indices)
         /// </summary>
         /// <returns>True if all indices were successfully deleted</returns>
         public async Task<bool> DeleteAllIndices()
@@ -363,19 +363,24 @@ namespace FloES
             foreach (KeyValuePair<IndexName, IndexState> index
             in (await _client.Indices.GetAsync(new GetIndexRequest(Indices.All))).Indices)
             {
-                indexDeletions.Add(await DeleteIndex(index.Key.Name));
+                // Do not delete system indices
+                if (!index.Key.Name.StartsWith('.'))
+                {
+                  indexDeletions.Add(await DeleteIndex(index.Key.Name));
+                }
             }
 
             return indexDeletions.All(indexDeletion => true);
         }
 
         /// <summary>
-        /// Delete an index
+        /// Delete an index (does not delete system indices)
         /// </summary>
         /// <param name="index">Index name</param>
         public async Task<bool> DeleteIndex(string index)
         {
-            if (!string.IsNullOrEmpty(index))
+            // Do not delete system indices
+            if (!string.IsNullOrEmpty(index) && !index.StartsWith('.'))
             {
                 _logger?.LogInformation($"~ ~ ~ Floe is deleting index {index}");
 
