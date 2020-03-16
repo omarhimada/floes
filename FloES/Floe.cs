@@ -283,9 +283,11 @@ namespace FloES
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="document">Document to write to the Elasticsearch index</param>
+        /// <param name="allowDuplicates">(Optional) if true the documents about to be bulk written will not be validated for duplicates (side-effect of async operations) - default is false</param>
         /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
         public async Task Write<T>(
           T document,
+          bool allowDuplicates = false,
           string index = null)
         {
             _documents.Add(document);
@@ -299,7 +301,7 @@ namespace FloES
                 {
                     BulkDescriptor bulkDescriptor = new BulkDescriptor();
                     bulkDescriptor
-                      .IndexMany(_documents)
+                      .IndexMany(!allowDuplicates ? _documents.Distinct() : _documents)
                       .Index(indexToWriteTo);
 
                     BulkResponse bulkResponse = await _client.BulkAsync(bulkDescriptor);
