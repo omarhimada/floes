@@ -197,10 +197,16 @@ namespace FloES
 
             List<T> results = new List<T>();
 
+            if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
+            {
+                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                return results;
+            }
+
             bool continueScrolling = true;
             while (continueScrolling && searchResponse != null)
             {
-                if (searchResponse.Documents != null && !searchResponse.IsValid || string.IsNullOrEmpty(searchResponse.ScrollId))
+                if (searchResponse.Documents != null && !searchResponse.IsValid)
                 {
                     _logger?.LogError($"~ ~ ~ Floe received an error while listing (scrolling) {searchResponse.ServerError?.Error?.Reason}");
                     break;
@@ -217,10 +223,7 @@ namespace FloES
                 }
             }
 
-            if (searchResponse != null)
-            {
-                await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
-            }
+            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
 
             return results;
         }
@@ -369,7 +372,7 @@ namespace FloES
                 // Do not delete system indices
                 if (!index.Key.Name.StartsWith('.'))
                 {
-                  indexDeletions.Add(await DeleteIndex(index.Key.Name));
+                    indexDeletions.Add(await DeleteIndex(index.Key.Name));
                 }
             }
 
