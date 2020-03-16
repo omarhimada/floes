@@ -97,7 +97,7 @@ namespace FloES
 
             _rollingDate = rollingDate;
 
-            if (numberOfBulkDocumentsToWriteAtOnce > 0)
+            if (numberOfBulkDocumentsToWriteAtOnce > -1)
             {
                 _numberOfBulkDocumentsToWriteAtOnce = numberOfBulkDocumentsToWriteAtOnce;
             }
@@ -139,7 +139,7 @@ namespace FloES
 
             _rollingDate = rollingDate;
 
-            if (numberOfBulkDocumentsToWriteAtOnce > 0)
+            if (numberOfBulkDocumentsToWriteAtOnce > -1)
             {
                 _numberOfBulkDocumentsToWriteAtOnce = numberOfBulkDocumentsToWriteAtOnce;
             }
