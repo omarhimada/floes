@@ -315,10 +315,8 @@ namespace FloES
 
                         throw new Exception(errorMessage);
                     }
-                    else
-                    {
-                        _documents.Clear();
-                    }
+
+                    _documents.Clear();
                 }
             }
             catch (Exception exception)
