@@ -81,7 +81,7 @@ namespace FloES
         ///     (Optional) number of documents to write to Elasticsearch
         ///     - set to 0 to write every record immediately, default is 5
         /// </param>
-        /// <param name="rollingDate">(Optional) whether or not to use a rolling date pattern for the indices, default is false</param>
+        /// <param name="rollingDate">(Optional) whether or not to use a rolling date pattern when writing to indices, default is false</param>
         /// <param name="logger">(Optional) ILogger to use</param>
         public Floe(
             ElasticClient client,
@@ -117,7 +117,7 @@ namespace FloES
         ///     (Optional) number of documents to write to Elasticsearch
         ///     - set to 0 to write every record immediately, default is 5
         /// </param>
-        /// <param name="rollingDate">(Optional) whether or not to use a rolling date pattern for the indices, default is false</param>
+        /// <param name="rollingDate">(Optional) whether or not to use a rolling date pattern when writing to indices, default is false</param>
         /// <param name="logger">(Optional) ILogger to use</param>
         public Floe(
             AWSOptions awsOptions,
@@ -159,7 +159,7 @@ namespace FloES
         /// List all documents in an index asynchronously using the scroll API
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
-        /// <param name="listToday">(Optional) whether or not to list using the rolling date of the index - default is false</param>
+        /// <param name="listToday">(Optional) whether or not to list using the last 24 hours of the UTC date - default is false</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> List<T>(
@@ -234,7 +234,7 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">The value to search for</param>
-        /// <param name="searchToday">(Optional) whether or not to limit the search to the rolling date - default is false</param>
+        /// <param name="searchToday">(Optional) whether or not to limit the search to the last 24 hours of the current UTC date - default is false</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> Search<T>(
           string fieldToSearch,
@@ -321,7 +321,7 @@ namespace FloES
             }
             catch (Exception exception)
             {
-                string exceptionLogPrefix = $"~~~ Floe threw an exception while trying to write to index {indexToWriteTo}";
+                string exceptionLogPrefix = $"~ ~ ~ Floe threw an exception while trying to write to index {indexToWriteTo}";
 
                 string errorMessage =
                   $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
