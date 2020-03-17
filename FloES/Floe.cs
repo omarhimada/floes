@@ -336,6 +336,56 @@ namespace FloES
         }
 
         /// <summary>
+        /// Write any remaining documents queue. If calling Write many times, you may want to call this method once at the end to 'flush'
+        /// any unwritten documents from the queue (e.g.: if your numberOfBulkDocumentsToWriteAtOnce is 5, and you last wrote 4 documents, calling this method
+        /// will write the final document)
+        /// </summary>
+        /// <typeparam name="T">Index POCO</typeparam>
+        /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
+        public async Task WriteUnwritten<T>(
+          bool allowDuplicates = false,
+          string index = null)
+        {
+            string indexToWriteTo = IndexToWriteTo(index);
+
+            try
+            {
+                BulkDescriptor bulkDescriptor = new BulkDescriptor();
+                bulkDescriptor
+                  .IndexMany(!allowDuplicates ? _documents.Distinct() : _documents)
+                  .Index(indexToWriteTo);
+
+                BulkResponse bulkResponse = await _client.BulkAsync(bulkDescriptor);
+
+                if (bulkResponse.Errors)
+                {
+                    string errorLogPrefix = $"~ ~ ~ Floe received an error while trying to write all unwritten documents to index {indexToWriteTo}";
+
+                    string errorMessage =
+                      $"{errorLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(bulkResponse.Errors)}";
+
+                    _logger?.LogError(errorMessage);
+
+                    throw new Exception(errorMessage);
+                }
+
+                _documents.Clear();
+            }
+            catch (Exception exception)
+            {
+                string exceptionLogPrefix = $"~ ~ ~ Floe threw an exception while trying to write all unwritten documents to index {indexToWriteTo}";
+
+                string errorMessage =
+                  $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
+
+                _logger?.LogError(errorMessage);
+
+                // ReSharper disable once PossibleIntendedRethrow
+                throw exception;
+            }
+        }
+
+        /// <summary>
         /// Find a document by its ID
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
