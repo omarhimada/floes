@@ -50,10 +50,12 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
 Make sure the document object you're writing has a unique "Id" parameter. Because of the asynchronous nature of `.Write`, and Elasticsearch clustering, by allowing Elasticsearch to automatically generate an "Id" parameter you run the risk of creating duplicate documents with their own unique IDs. An example is below:
 ````C#
 // Class definition
-public class Log 
+public partial class Log 
 {
     [JsonProperty("id")]
     public string Id { get; set; }
+    
+    // ...
 }
 
 // Document
