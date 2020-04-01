@@ -279,6 +279,78 @@ namespace FloES
         }
 
         /// <summary>
+        /// Count all the documents in an index
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
+        public async Task<long> Count<T>(
+          string index = null) where T : class
+        {
+            string indexToCount = IndexToSearch(index);
+
+            try
+            {
+                CountResponse countResponse = 
+                  await _client.CountAsync<T>(c => c
+                    .Index(indexToCount));
+
+                return countResponse.Count;
+            }
+            catch (Exception exception)
+            {
+                string exceptionLogPrefix = $"~ ~ ~ Floe threw an exception while trying to count documents in index {indexToCount}";
+
+                string errorMessage =
+                  $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
+
+                _logger?.LogError(errorMessage);
+
+                // ReSharper disable once PossibleIntendedRethrow
+                throw exception;
+            }
+        }
+
+        /// <summary>
+        /// Count all the documents in an index that match a given search query
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
+        /// <param name="valueToSearch">The value to search for</param>
+        /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
+        public async Task<long> CountBySearch<T>(
+          string fieldToSearch,
+          object valueToSearch,
+          string index = null) where T : class
+        {
+            string indexToCount = IndexToSearch(index);
+
+            try
+            {
+                CountResponse countResponse =
+                  await _client.CountAsync<T>(c => c
+                    .Index(indexToCount)
+                    .Query(q => q
+                      .Match(m => m
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString()))));
+
+                return countResponse.Count;
+            }
+            catch (Exception exception)
+            {
+                string exceptionLogPrefix = $"~ ~ ~ Floe threw an exception while trying to count documents in index {indexToCount}";
+
+                string errorMessage =
+                  $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
+
+                _logger?.LogError(errorMessage);
+
+                // ReSharper disable once PossibleIntendedRethrow
+                throw exception;
+            }
+        }
+
+        /// <summary>
         /// Write the document to an Elasticsearch index. Uses BulkAsync and 'numberOfBulkDocumentsToWriteAtOnce'
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
