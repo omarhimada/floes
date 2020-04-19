@@ -159,17 +159,21 @@ namespace FloES
         /// List all documents in an index asynchronously using the scroll API
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
-        /// <param name="listToday">(Optional) whether or not to list using the last 24 hours of the UTC date - default is false</param>
+        /// <param name="listLast24Hours">(Optional) whether or not to list using the last 24 hours of the UTC date - default is false</param>
+        /// <param name="listLast31Days">(Optional) whether or not to list using the last 31 days of the UTC date - default is false</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> List<T>(
-          bool listToday = false,
+          bool listLast24Hours = false,
+          bool listLast31Days = false,
           string scrollTime = "60s",
           string index = null) where T : class
         {
             string indexToScroll = IndexToSearch(index);
-            ISearchResponse<T> searchResponse;
-            if (!listToday)
+            ISearchResponse<T> searchResponse = null;
+            List<T> results = new List<T>();
+
+            if (!listLast24Hours && !listLast31Days)
             {
                 searchResponse =
                   await _client.SearchAsync<T>(sd => sd
@@ -179,7 +183,7 @@ namespace FloES
                     .MatchAll()
                     .Scroll(scrollTime));
             }
-            else
+            else if (listLast24Hours)
             {
                 // Scroll for the last day only (UTC)
                 searchResponse =
@@ -194,8 +198,26 @@ namespace FloES
                             DateTime.UtcNow.Subtract(TimeSpan.FromDays(1)))))
                     .Scroll(scrollTime));
             }
-
-            List<T> results = new List<T>();
+            else if (listLast31Days)
+            {
+                // Scroll for the last month only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(query =>
+                      query.DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(
+                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(31)))))
+                    .Scroll(scrollTime));
+            }
+            else if (listLast24Hours && listLast31Days)
+            {
+                _logger?.LogInformation($"~ ~ ~ Floe was told to list both the last 24 hours and 31 days simultaneously, in its confusion it decided to return nothing");
+                return results;
+            }
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
