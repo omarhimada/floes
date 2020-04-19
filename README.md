@@ -21,9 +21,14 @@ _ordersFloe = new Floe<ExampleOrdersService>(
     numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
     rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
     
-// Write an order document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
-// You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage with a smart numberOfBulkDocumentsToWriteAtOnce choice)
+// Write an order document to the default index with a rolling date (e.g.: idx-orders-2020-04-20)
+// You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage, with a smart numberOfBulkDocumentsToWriteAtOnce choice)
 await _ordersFloe.Write<Order>(order);
+
+// Choosing a good numberOfBulkDocumentsToWriteAtOnce:
+// Writing 10,000 documents/hour -> numberOfBulkDocumentsToWriteAtOnce: ~50
+// Writing 3 documents a day -> numberOfBulkDocumentsToWriteAtOnce: ~1
+// tl;dr: use your head!
 
 // Get an order
 Order order = await _ordersFloe.Find<Order>(id: "1");
