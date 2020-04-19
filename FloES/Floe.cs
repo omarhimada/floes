@@ -160,11 +160,13 @@ namespace FloES
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="listLast24Hours">(Optional) whether or not to list using the last 24 hours of the UTC date - default is false</param>
+        /// <param name="listLast7Days">(Optional) whether or not to list using the last 7 days of the UTC date - default is false</param>
         /// <param name="listLast31Days">(Optional) whether or not to list using the last 31 days of the UTC date - default is false</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> List<T>(
           bool listLast24Hours = false,
+          bool listLast7Days = false,
           bool listLast31Days = false,
           string scrollTime = "60s",
           string index = null) where T : class
@@ -198,6 +200,21 @@ namespace FloES
                             DateTime.UtcNow.Subtract(TimeSpan.FromDays(1)))))
                     .Scroll(scrollTime));
             }
+            else if (listLast7Days)
+            {
+                // Scroll for the last week only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(query =>
+                      query.DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(
+                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)))))
+                    .Scroll(scrollTime));
+            }
             else if (listLast31Days)
             {
                 // Scroll for the last month only (UTC)
@@ -213,9 +230,9 @@ namespace FloES
                             DateTime.UtcNow.Subtract(TimeSpan.FromDays(31)))))
                     .Scroll(scrollTime));
             }
-            else if (listLast24Hours && listLast31Days)
+            else if (listLast24Hours && listLast7Days && listLast31Days)
             {
-                _logger?.LogInformation($"~ ~ ~ Floe was told to list both the last 24 hours and 31 days simultaneously, in its confusion it decided to return nothing");
+                _logger?.LogInformation($"~ ~ ~ Floe was told to list both the last 24 hours, 7 days and 31 days simultaneously, in its confusion it decided to return nothing");
                 return results;
             }
 
