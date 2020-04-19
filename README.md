@@ -19,7 +19,7 @@ _ordersFloe = new Floe<ExampleOrdersService>(
     defaultIndex: "idx-orders",
     logger: _logger, // optionally pass in your ILogger to get automatic logs
     numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
-    rollingDate: true);
+    rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
     
 // Write an order document to the default index with a rolling date (e.g.: "idx-orders-2020-03-06")
 // You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage with a smart numberOfBulkDocumentsToWriteAtOnce choice)
