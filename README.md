@@ -65,7 +65,7 @@ public partial class Log
     // ...
 }
 
-// Document
+// Document we want to write
 Log log = new Log
 {
     Id = $"Log-{task}-{DateTime.Now.ToString(CultureInfo.InvariantCulture)}",
