@@ -31,8 +31,8 @@ Order order = await _ordersFloe.Find<Order>(id: "1");
 // List all orders
 IEnumerable<Order> orders = await _ordersFloe.List<Order>();
 
-// List all orders for today
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listToday: true);
+// List all orders for the last 24 hours
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast24Hours: true);
 
 // Search for orders of SKU 100
 IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
