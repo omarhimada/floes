@@ -30,7 +30,7 @@ await _ordersFloe.Write<Order>(order);
 // Writing 3 documents a day -> numberOfBulkDocumentsToWriteAtOnce: ~1
 // tl;dr: use your head!
 
-// Write any remaining unwritten documents from the buffer (e.g.: call this once at the end of a very long loop to finish up)
+// Write any remaining unwritten documents from the buffer (e.g.: call this once after a very long loop to finish up)
 await _ordersFloe.WriteUnwritten<Order>();
 
 // Get an order
