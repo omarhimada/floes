@@ -175,7 +175,7 @@ namespace FloES
             ISearchResponse<T> searchResponse = null;
             List<T> results = new List<T>();
 
-            if (!listLast24Hours && !listLast31Days)
+            if (!listLast24Hours && !listLast7Days && !listLast31Days)
             {
                 searchResponse =
                   await _client.SearchAsync<T>(sd => sd
