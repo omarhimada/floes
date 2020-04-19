@@ -232,7 +232,7 @@ namespace FloES
             }
             else if (listLast24Hours && listLast7Days && listLast31Days)
             {
-                _logger?.LogInformation($"~ ~ ~ Floe was told to list both the last 24 hours, 7 days and 31 days simultaneously, in its confusion it decided to return nothing");
+                _logger?.LogInformation($"~ ~ ~ Floe was told to list the last 24 hours, 7 days and 31 days simultaneously, in its confusion it decided to return nothing");
                 return results;
             }
 
