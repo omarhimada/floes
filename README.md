@@ -34,6 +34,12 @@ IEnumerable<Order> orders = await _ordersFloe.List<Order>();
 // List all orders for the last 24 hours
 IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast24Hours: true);
 
+// List all orders for the last 7 days
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast7Days: true);
+
+// List all orders for the last 31 days
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast31Days: true);
+
 // Search for orders of SKU 100
 IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
 
@@ -47,6 +53,7 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
 }
 ````
 **Help! I'm writing duplicates!**
+
 Make sure the document object you're writing has a unique "Id" parameter. Because of the asynchronous nature of `.Write`, and Elasticsearch clustering, by allowing Elasticsearch to automatically generate an "Id" parameter you run the risk of creating duplicate documents with their own unique IDs. An example is below:
 ````C#
 // Class definition
@@ -61,7 +68,7 @@ public partial class Log
 // Document
 Log log = new Log
 {
-    Id = $"Log-{task}-{now.ToString(CultureInfo.InvariantCulture)}",
+    Id = $"Log-{task}-{DateTime.Now.ToString(CultureInfo.InvariantCulture)}",
     TaskName = task,
     Description = description,
 };
