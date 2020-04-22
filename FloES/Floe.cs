@@ -230,11 +230,6 @@ namespace FloES
                             DateTime.UtcNow.Subtract(TimeSpan.FromDays(31)))))
                     .Scroll(scrollTime));
             }
-            else if (listLast24Hours && listLast7Days && listLast31Days)
-            {
-                _logger?.LogInformation($"~ ~ ~ Floe was told to list the last 24 hours, 7 days and 31 days simultaneously, in its confusion it decided to return nothing");
-                return results;
-            }
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
@@ -273,48 +268,124 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">The value to search for</param>
-        /// <param name="searchToday">(Optional) whether or not to limit the search to the last 24 hours of the current UTC date - default is false</param>
+        /// <param name="searchLast24Hours">(Optional) whether or not to list using the last 24 hours of the UTC date - default is false</param>
+        /// <param name="searchLast7Days">(Optional) whether or not to list using the last 7 days of the UTC date - default is false</param>
+        /// <param name="searchLast31Days">(Optional) whether or not to list using the last 31 days of the UTC date - default is false</param>
+        /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> Search<T>(
           string fieldToSearch,
           object valueToSearch,
-          bool searchToday = false,
+          bool searchLast24Hours = false,
+          bool searchLast7Days = false,
+          bool searchLast31Days = false,
+          string scrollTime = "60s",
           string index = null) where T : class
         {
-            string indexToSearch = IndexToSearch(index);
+            string indexToScroll = IndexToSearch(index);
+            ISearchResponse<T> searchResponse = null;
+            List<T> results = new List<T>();
 
-            ISearchResponse<T> searchResponse;
-            if (!searchToday)
-            {
-                searchResponse =
-                  await _client.SearchAsync<T>(s => s
-                    .Size(10000)
-                    .Index(indexToSearch)
-                    .Query(q =>
-                      q.Match(c => c
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString()))));
-            }
-            else
+            if (!searchLast24Hours && !searchLast7Days && !searchLast31Days)
             {
                 searchResponse =
                   await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToSearch)
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(q =>
+                      q.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString())))
+                    .Scroll(scrollTime));
+            }
+            else if (searchLast24Hours)
+            {
+                // Scroll for the last day only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(query =>
+                      query
+                        .DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(DateTime.UtcNow.Subtract(TimeSpan.FromDays(1)))))
+                    .Query(query => 
+                      query.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString())))
+                    .Scroll(scrollTime));
+            }
+            else if (searchLast7Days)
+            {
+                // Scroll for the last week only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
                     .Query(query =>
                       query.DateRange(s => s
                         .Field("timeStamp")
                         .GreaterThanOrEquals(
-                          DateTime.UtcNow.Subtract(TimeSpan.FromDays(1))))));
+                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(7)))))
+                    .Query(query =>
+                      query.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString())))
+                    .Scroll(scrollTime));
             }
-
-            if (searchResponse?.Documents != null && !searchResponse.IsValid)
+            else if (searchLast31Days)
             {
-                return searchResponse.Documents;
+                // Scroll for the last month only (UTC)
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .From(0)
+                    .Take(1000)
+                    .Query(query =>
+                      query.DateRange(s => s
+                        .Field("timeStamp")
+                        .GreaterThanOrEquals(
+                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(31)))))
+                    .Query(query =>
+                      query.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString())))
+                    .Scroll(scrollTime));
             }
 
-            _logger?.LogError($"~ ~ ~ Floe received an error while searching for [{fieldToSearch},{valueToSearch}]: {searchResponse?.ServerError?.Error?.Reason}");
+            if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
+            {
+                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                return results;
+            }
 
-            return null;
+            bool continueScrolling = true;
+            while (continueScrolling && searchResponse != null)
+            {
+                if (searchResponse.Documents != null && !searchResponse.IsValid)
+                {
+                    _logger?.LogError($"~ ~ ~ Floe received an error while searching (scrolling) {searchResponse.ServerError?.Error?.Reason}");
+                    break;
+                }
+
+                if (searchResponse.Documents != null && !searchResponse.Documents.Any())
+                {
+                    continueScrolling = false;
+                }
+                else
+                {
+                    results.AddRange(searchResponse.Documents);
+                    searchResponse = await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+                }
+            }
+
+            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+
+            return results;
         }
 
         /// <summary>
