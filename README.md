@@ -71,7 +71,7 @@ ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
     listLastXDays: 365.25);
     
 bool continueScrolling = true;
-while (continueScrolling && searchResponse != null)
+while (continueScrolling && scrollCanada != null)
 {
     if (scrollCanada.Documents != null && !scrollCanada.IsValid)
     {
