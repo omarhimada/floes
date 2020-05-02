@@ -123,10 +123,10 @@ public partial class Log
     // ...
 }
 
-// Document we want to write
+// Document we want to write (e.g.: some Log)
 Log log = new Log
 {
-    Id = $"Log-{task}-{DateTime.Now.ToString(CultureInfo.InvariantCulture)}",
+    Id = $"log-{task}-{DateTime.UtcNow.ToString("yyy-MM-dd-HH-mm-ss)}",
     TaskName = task,
     Description = description,
 };
