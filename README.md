@@ -3,7 +3,7 @@ FloES is a generic wrapper for common Elasticsearch operations, such as writing 
 
 **https://www.nuget.org/packages/FloES**
 
-**Example usage: write, find, list and search for 'Orders' (e.g.: eCommerce website)**
+**Example usage: instantiation (e.g.: eCommerce website)**
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
@@ -20,7 +20,10 @@ _ordersFloe = new Floe<ExampleOrdersService>(
     logger: _logger, // optionally pass in your ILogger to get automatic logs
     numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
     rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
-    
+````
+
+**Example usage: write, find 'Orders'**
+````C#    
 // Write an order document to the default index with a rolling date (e.g.: idx-orders-2020-04-20)
 // You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage, with a smart numberOfBulkDocumentsToWriteAtOnce choice)
 await _ordersFloe.Write<Order>(order);
@@ -36,22 +39,68 @@ await _ordersFloe.WriteUnwritten<Order>();
 // Get an order
 Order order = await _ordersFloe.Find<Order>(id: "1");
 
+````
+
+**Example usage: listing and searching**
+````C#
+
 // List all orders
 IEnumerable<Order> orders = await _ordersFloe.List<Order>();
 
 // List all orders for the last 24 hours
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast24Hours: true);
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLastXHours: 24);
 
-// List all orders for the last 7 days
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast7Days: true);
-
-// List all orders for the last 31 days
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLast31Days: true);
+// List all orders for the last 7.5 days
+IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLastXDays: 7.5);
 
 // Search for orders of SKU 100
 IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
 
-// Delete all indices and then dispose of the Floe capable of doing so
+// Search for orders of SKU 100 for the last 4.5 hours
+IEnumerable<Order> orders = await _ordersFloe.Search<Order>(
+    fieldToSearch: "sku", 
+    valueToSearch: 100,
+    listLastXHours: 4.5);
+````
+    
+**Example usage: scrolling manually (i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List**
+````C#
+// Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
+ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
+    scrollForXDocuments: 1000,
+    listLastXDays: 365.25);
+    
+bool continueScrolling = true;
+while (continueScrolling && searchResponse != null)
+{
+    if (scrollCanada.Documents != null && !scrollCanada.IsValid)
+    {
+        break;
+    }
+
+    if (scrollCanada.Documents != null && !searchResponse.Documents.Any())
+    {
+        continueScrolling = false;
+    }
+    else
+    {
+        // Do something with your 1000 orders before continuing the scroll
+        _yourResults.AddRange(scrollCanada.Documents);
+        _yourProgressIndicator.IndicateScrollProgress(yourResults.Count);
+        _yourLogger.LogInformation($"We got another 1000 orders from Elasticsearch!");
+        
+        // Continue the scroll for the next set of orders
+        scrollCanada = await _ordersFloe.ContinueScroll<Order>(scrollCanada);
+    }
+}
+
+// End the scroll
+await _ordersFloe.EndScroll(scrollCanada);
+````
+
+**Example usage: delete test indices when debugging on development environment**
+````C#
+// DANGER: delete all indices and then dispose of the Floe capable of doing so
 {
     await using Floe<ExampleAdminService> temporaryDeleteAllIndicesFloe = new Floe(
       awsOptions: _awsOptions,
@@ -60,6 +109,7 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
     await temporaryDeleteIndexFloe.DeleteAllIndices();
 }
 ````
+
 **Help! I'm writing duplicates!**
 
 Make sure the document object you're writing has a unique "Id" parameter. Because of the asynchronous nature of `.Write`, and Elasticsearch clustering, by allowing Elasticsearch to automatically generate an "Id" parameter you run the risk of creating duplicate documents with their own unique IDs. An example is below:
