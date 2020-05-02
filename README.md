@@ -78,7 +78,7 @@ while (continueScrolling && searchResponse != null)
         break;
     }
 
-    if (scrollCanada.Documents != null && !searchResponse.Documents.Any())
+    if (scrollCanada.Documents != null && !scrollCanada.Documents.Any())
     {
         continueScrolling = false;
     }
