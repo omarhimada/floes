@@ -581,60 +581,108 @@ namespace FloES
                 await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
 
         /// <summary>
-        /// Count all the documents in an index
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
-        public async Task<long> Count<T>(
-          string index = null) where T : class
-        {
-            string indexToCount = IndexToSearch(index);
-
-            try
-            {
-                CountResponse countResponse =
-                  await _client.CountAsync<T>(c => c
-                    .Index(indexToCount));
-
-                return countResponse.Count;
-            }
-            catch (Exception exception)
-            {
-                string exceptionLogPrefix = $"~ ~ ~ Floe threw an exception while trying to count documents in index {indexToCount}";
-
-                string errorMessage =
-                  $"{exceptionLogPrefix}{Environment.NewLine}{JsonConvert.SerializeObject(exception)}";
-
-                _logger?.LogError(errorMessage);
-
-                // ReSharper disable once PossibleIntendedRethrow
-                throw exception;
-            }
-        }
-
-        /// <summary>
-        /// Count all the documents in an index that match a given search query
+        /// (Expensive) search for documents with pagination (e.g.: in a DataGrid scenario)
+        /// (NOTE:
+        /// don't use this if your grid is going to have millions of records in it
+        /// as this won't be performant in such a scenario)
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">The value to search for</param>
-        /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
-        public async Task<long> CountBySearch<T>(
+        /// <param name="page">The page of the DataGrid - default is 1</param>
+        /// <param name="recordsOnPage">How many records each page of the DataGrid contains - default is 20</param>
+        /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
+        public async Task<IEnumerable<T>> SearchPaged<T>(
           string fieldToSearch,
           object valueToSearch,
+          int page = 1,
+          int recordsOnPage = 20,
+          string index = null) where T : class
+        {
+            string indexToScroll = IndexToSearch(index);
+            ISearchResponse<T> searchResponse = null;
+            List<T> results = new List<T>();
+
+            // Autocorrect the incorrect assumption of this method's intent
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            // Autocorrect the incorrect assumption of this method's intent
+            if (recordsOnPage < 1)
+            {
+                recordsOnPage = 1;
+            }
+
+            // e.g.:
+            // page,recordsOnPage (1, 20) ==>
+            //  from,size (0, 20)
+            // page,recordsOnPage (2, 20) ==>
+            //  from,size (20, 20)
+            // page,recordsOnPage (3, 20) ==>
+            //  from,size (40, 20)
+            // etc.
+            int from = (page * recordsOnPage) - recordsOnPage;
+            int size = recordsOnPage;
+
+            searchResponse =
+                await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .Query(q =>
+                    q.Match(c => c
+                    .Field(fieldToSearch)
+                    .Query(valueToSearch.ToString())))
+                .From(page)
+                .Size(recordsOnPage));
+
+            if (searchResponse == null || !searchResponse.Documents.Any())
+            {
+                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                return results;
+            }
+
+            results.AddRange(searchResponse.Documents);
+
+            return results;
+        }
+
+        /// <summary>
+        /// Count all the documents in an index that match a given search query.
+        /// Leave fieldToSearch and valueToSearch null if you want to count all documents in an index
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="fieldToSearch">(Optional) the name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
+        /// <param name="valueToSearch">(Optional) the value to search for</param>
+        /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
+        public async Task<long> Count<T>(
+          string fieldToSearch = null,
+          object valueToSearch = null,
           string index = null) where T : class
         {
             string indexToCount = IndexToSearch(index);
 
             try
             {
-                CountResponse countResponse =
-                  await _client.CountAsync<T>(c => c
-                    .Index(indexToCount)
-                    .Query(q => q
-                      .Match(m => m
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString()))));
+                CountResponse countResponse;
+
+                // 'CountBySearch'
+                if (fieldToSearch != null && valueToSearch != null)
+                {
+                    countResponse =
+                      await _client.CountAsync<T>(c => c
+                        .Index(indexToCount)
+                        .Query(q => q
+                          .Match(m => m
+                            .Field(fieldToSearch)
+                            .Query(valueToSearch.ToString()))));
+                }
+                else
+                {
+                    countResponse =
+                        await _client.CountAsync<T>(c => c
+                        .Index(indexToCount));
+                }
 
                 return countResponse.Count;
             }
