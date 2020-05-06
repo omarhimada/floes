@@ -67,6 +67,8 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>(
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
 ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
+    fieldToSearch: "region", 
+    valueToSearch: "Canada",
     scrollForXDocuments: 1000,
     listLastXDays: 365.25);
     
