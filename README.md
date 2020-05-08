@@ -119,7 +119,7 @@ Make sure the document object you're writing has a unique "Id" parameter. Becaus
 // Class definition
 public partial class Log 
 {
-    [JsonProperty("id")]
+    [PropertyName("id")]
     public string Id { get; set; }
     
     // ...
