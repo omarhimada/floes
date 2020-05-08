@@ -4,7 +4,7 @@ VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FloES", "FLoES\FloES.csproj", "{95137051-A885-4D59-9725-99A7FD5F6F8D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FloES.Tests", "FloES.Tests\FloES.Tests.csproj", "{14D0F423-4D20-46AA-96EC-6FF78268EBC9}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FloES.Tests", "FloES.Tests\FloES.Tests.csproj", "{14D0F423-4D20-46AA-96EC-6FF78268EBC9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

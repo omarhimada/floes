@@ -159,12 +159,16 @@ namespace FloES
         /// List all documents in an index asynchronously using the scroll API
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
+        /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
+        /// <param name="sort">(Optional) string tuple - (fieldName, direction) where direction is either "asc" (ascending) or "des" (descending)</param>
         /// <param name="listLastXHours">(Optional) whether or not to list using the last X hours of the UTC date - default is null</param>
         /// <param name="listLastXDays">(Optional) whether or not to list using the last X days of the UTC date - default is null</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         /// <param name="timeStampField">(Optional) the name of the time stamp field to consider - default is "timeStamp"</param>
         public async Task<IEnumerable<T>> List<T>(
+          Tuple<string, string>[] filters = null,
+          Tuple<string, string> sort = null,
           double? listLastXHours = null,
           double? listLastXDays = null,
           string scrollTime = "60s",
@@ -172,61 +176,24 @@ namespace FloES
           string timeStampField = "timeStamp") where T : class
         {
             string indexToScroll = IndexToSearch(index);
-            ISearchResponse<T> searchResponse = null;
             List<T> results = new List<T>();
 
-            if (listLastXHours == null && listLastXDays == null)
-            {
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .MatchAll()
-                    .Scroll(scrollTime));
-            }
-            else if (listLastXHours != null)
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (listLastXHours == 0)
-                {
-                    listLastXHours = 1;
-                }
+            double? hours = listLastXHours;
+            double? days = listLastXDays;
 
-                // Scroll for the last X hours only (UTC)
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .Query(query =>
-                      query.DateRange(s => s
-                        .Field(timeStampField)
-                        .GreaterThanOrEquals(
-                            DateTime.UtcNow.Subtract(TimeSpan.FromHours(listLastXHours.Value)))))
-                    .Scroll(scrollTime));
-            }
-            else
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (listLastXDays == 0)
-                {
-                    listLastXDays = 1;
-                }
-
-                // Scroll for the last X days only (UTC)
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .Query(query =>
-                      query.DateRange(s => s
-                        .Field(timeStampField)
-                        .GreaterThanOrEquals(
-                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(listLastXDays.Value)))))
-                    .Scroll(scrollTime));
-            }
+            ISearchResponse<T> searchResponse =
+              await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .From(0)
+                .Take(1000)
+                .Query(q =>
+                  q.ConstructQueryContainerDescriptor(
+                    filters: filters,
+                    scrollLastXHours: hours,
+                    scrollLastXDays: days,
+                    timeStampField: timeStampField))
+                .Sort(s => s.ConstructSortDescriptor(sort))
+                .Scroll(scrollTime));
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
@@ -250,11 +217,11 @@ namespace FloES
                 else
                 {
                     results.AddRange(searchResponse.Documents);
-                    searchResponse = await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+                    searchResponse = await ContinueScroll(searchResponse, scrollTime);
                 }
             }
 
-            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+            await EndScroll(searchResponse);
 
             return results;
         }
@@ -265,6 +232,7 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">The value to search for</param>
+        /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
         /// <param name="searchLastXHours">(Optional) whether or not to search using the last X hours of the UTC date - default is null</param>
         /// <param name="searchLastXDays">(Optional) whether or not to search using the last X days of the UTC date - default is null</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
@@ -273,6 +241,7 @@ namespace FloES
         public async Task<IEnumerable<T>> Search<T>(
           string fieldToSearch,
           object valueToSearch,
+          Tuple<string, string>[] filters = null,
           double? searchLastXHours = null,
           double? searchLastXDays = null,
           string scrollTime = "60s",
@@ -280,72 +249,25 @@ namespace FloES
           string timeStampField = "timeStamp") where T : class
         {
             string indexToScroll = IndexToSearch(index);
-            ISearchResponse<T> searchResponse = null;
             List<T> results = new List<T>();
 
-            if (searchLastXHours == null && searchLastXDays == null)
-            {
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .Query(q =>
-                      q.Match(c => c
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString())))
-                    .Scroll(scrollTime));
-            }
-            else if (searchLastXHours != null)
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (searchLastXHours == 0)
-                {
-                    searchLastXHours = 1;
-                }
+            double? hours = searchLastXHours;
+            double? days = searchLastXDays;
 
-                // Scroll for the last X hours only (UTC)
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .Query(query =>
-                      query
-                        .DateRange(s => s
-                        .Field(timeStampField)
-                        .GreaterThanOrEquals(DateTime.UtcNow.Subtract(TimeSpan.FromDays(searchLastXHours.Value)))))
-                    .Query(query =>
-                      query.Match(c => c
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString())))
-                    .Scroll(scrollTime));
-            }
-            else if (searchLastXDays != null)
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (searchLastXDays == 0)
-                {
-                    searchLastXDays = 1;
-                }
-
-                // Scroll for the last X days only (UTC)
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .From(0)
-                    .Take(1000)
-                    .Query(query =>
-                      query.DateRange(s => s
-                        .Field(timeStampField)
-                        .GreaterThanOrEquals(
-                            DateTime.UtcNow.Subtract(TimeSpan.FromDays(searchLastXDays.Value)))))
-                    .Query(query =>
-                      query.Match(c => c
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString())))
-                    .Scroll(scrollTime));
-            }
+            ISearchResponse<T> searchResponse =
+              await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .From(0)
+                .Take(1000)
+                .Query(q =>
+                  q.ConstructQueryContainerDescriptor(
+                    filters,
+                    fieldToSearch,
+                    valueToSearch,
+                    hours,
+                    days,
+                    timeStampField))
+                .Scroll(scrollTime));
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
@@ -369,11 +291,11 @@ namespace FloES
                 else
                 {
                     results.AddRange(searchResponse.Documents);
-                    searchResponse = await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+                    searchResponse = await ContinueScroll(searchResponse, scrollTime);
                 }
             }
 
-            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+            await EndScroll(searchResponse);
 
             return results;
         }
@@ -388,6 +310,7 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">(Optional) the name of the field in the document to search (e.g.: "customerId" or "animal.name") - default is null</param>
         /// <param name="valueToSearch">(Optional) the value to search for - default is null</param>
+        /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
         /// <param name="scrollForXDocuments">(Optional) how many documents you will be scrolling at a time - default is 1000</param>
         /// <param name="scrollLastXHours">(Optional) whether or not to scroll using the last X hours of the UTC date - default is null</param>
         /// <param name="scrollLastXDays">(Optional) whether or not to scroll using the last X days of the UTC date - default is null</param>
@@ -397,6 +320,7 @@ namespace FloES
         public async Task<ISearchResponse<T>> BeginScroll<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
+          Tuple<string, string>[] filters = null,
           int scrollForXDocuments = 1000,
           double? scrollLastXHours = null,
           double? scrollLastXDays = null,
@@ -405,120 +329,24 @@ namespace FloES
           string timeStampField = "timeStamp") where T : class
         {
             string indexToScroll = IndexToSearch(index);
-            ISearchResponse<T> searchResponse = null;
 
-            if (scrollLastXHours == null && scrollLastXDays == null)
-            {
-                if (fieldToSearch != null && valueToSearch != null)
-                {
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .Query(q =>
-                          q.Match(c => c
-                            .Field(fieldToSearch)
-                            .Query(valueToSearch.ToString())))
-                        .Scroll(scrollTime));
-                }
-                else
-                {
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .MatchAll()
-                        .Scroll(scrollTime));
-                }
-            }
-            else if (scrollLastXHours != null)
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (scrollLastXHours == 0)
-                {
-                    scrollLastXHours = 1;
-                }
+            double? hours = scrollLastXHours;
+            double? days = scrollLastXDays;
 
-                if (fieldToSearch != null && valueToSearch != null)
-                {
-                    // Scroll for the last X hours only (UTC)
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .Query(query =>
-                          query
-                            .DateRange(s => s
-                              .Field(timeStampField)
-                              .GreaterThanOrEquals(DateTime.UtcNow.Subtract(TimeSpan.FromDays(scrollLastXHours.Value)))))
-                        .Query(query =>
-                          query.Match(c => c
-                            .Field(fieldToSearch)
-                            .Query(valueToSearch.ToString())))
-                        .Scroll(scrollTime));
-                }
-                else
-                {
-                    // Scroll for the last X hours only (UTC) with no specific search query
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .Query(query =>
-                          query
-                            .DateRange(s => s
-                              .Field(timeStampField)
-                              .GreaterThanOrEquals(DateTime.UtcNow.Subtract(TimeSpan.FromDays(scrollLastXHours.Value)))))
-                        .Scroll(scrollTime));
-                }
-            }
-            else if (scrollLastXDays != null)
-            {
-                // Prevent attempt to scroll over a TimeSpan of zero
-                if (scrollLastXDays == 0)
-                {
-                    scrollLastXDays = 1;
-                }
-
-                if (fieldToSearch != null && valueToSearch != null)
-                {
-                    // Scroll for the last X days only only (UTC)
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .Query(query =>
-                          query.DateRange(s => s
-                            .Field(timeStampField)
-                            .GreaterThanOrEquals(
-                              DateTime.UtcNow.Subtract(TimeSpan.FromDays(scrollLastXDays.Value)))))
-                        .Query(query =>
-                          query.Match(c => c
-                            .Field(fieldToSearch)
-                            .Query(valueToSearch.ToString())))
-                        .Scroll(scrollTime));
-                }
-                else
-                {
-                    // Scroll for the last X days only only (UTC) with no specific search query
-                    searchResponse =
-                      await _client.SearchAsync<T>(sd => sd
-                        .Index(indexToScroll)
-                        .From(0)
-                        .Take(scrollForXDocuments)
-                        .Query(query =>
-                          query.DateRange(s => s
-                            .Field(timeStampField)
-                            .GreaterThanOrEquals(
-                              DateTime.UtcNow.Subtract(TimeSpan.FromDays(scrollLastXDays.Value)))))
-                        .Scroll(scrollTime));
-                }
-            }
+            ISearchResponse<T> searchResponse =
+              await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .From(0)
+                .Take(scrollForXDocuments)
+                .Query(q => 
+                  q.ConstructQueryContainerDescriptor(
+                      filters, 
+                      fieldToSearch, 
+                      valueToSearch, 
+                      hours, 
+                      days, 
+                      timeStampField))
+                .Scroll(scrollTime));
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
@@ -544,7 +372,7 @@ namespace FloES
             //    else
             //    {
             //        results.AddRange(searchResponse.Documents);
-            //        searchResponse = await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+            //        searchResponse = await ContinueScroll(searchResponse, scrollTime);
             //    }
             //}
 
@@ -560,13 +388,12 @@ namespace FloES
         /// after you are done scrolling, you should call 'EndScroll' to clear your scroll)
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="searchResponse"></param>
-        /// <param name="scrollTime"></param>
-        /// <returns></returns>
+        /// <param name="searchResponse">Pre-existing ISearchResponse to continue scrolling</param>
+        /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         public async Task<ISearchResponse<T>> ContinueScroll<T>(
-            ISearchResponse<T> searchResponse,
-            string scrollTime = "60s") where T : class =>
-                await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
+          ISearchResponse<T> searchResponse,
+          string scrollTime = "60s") where T : class =>
+            await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
 
         /// <summary>
         /// End a scroll by clearing the scroll
@@ -575,10 +402,10 @@ namespace FloES
         /// You DO NOT need to call this if you are just using the 'Search' method)
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="searchResponse"></param>
+        /// <param name="searchResponse">Pre-existing ISearchResponse used to clear the scroll</param>
         public async Task EndScroll<T>(
-            ISearchResponse<T> searchResponse) where T : class =>
-                await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
+          ISearchResponse<T> searchResponse) where T : class =>
+            await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
 
         /// <summary>
         /// (Expensive) search for documents with pagination (e.g.: in a DataGrid scenario)
@@ -587,14 +414,18 @@ namespace FloES
         /// as this won't be performant in such a scenario)
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="fieldToSearch">The name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
-        /// <param name="valueToSearch">The value to search for</param>
+        /// <param name="fieldToSearch">(Optional) the name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
+        /// <param name="valueToSearch">(Optional) the value to search for</param>
+        /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
+        /// <param name="sort">(Optional) string tuple - (fieldName, direction) where direction is either "asc" (ascending) or "des" (descending)</param>
         /// <param name="page">The page of the DataGrid - default is 1</param>
         /// <param name="recordsOnPage">How many records each page of the DataGrid contains - default is 20</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
         public async Task<IEnumerable<T>> Page<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
+          Tuple<string, string>[] filters = null,
+          Tuple<string, string> sort = null,
           int page = 1,
           int recordsOnPage = 20,
           string index = null) where T : class
@@ -626,27 +457,13 @@ namespace FloES
             int from = (page * recordsOnPage) - recordsOnPage;
             int size = recordsOnPage;
 
-            if (fieldToSearch != null && valueToSearch != null)
-            {
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .Query(q =>
-                      q.Match(c => c
-                        .Field(fieldToSearch)
-                        .Query(valueToSearch.ToString())))
-                    .From(from)
-                    .Size(size));
-            }
-            else
-            {
-                searchResponse =
-                  await _client.SearchAsync<T>(sd => sd
-                    .Index(indexToScroll)
-                    .MatchAll()
-                    .From(from)
-                    .Size(size));
-            }
+            searchResponse =
+              await _client.SearchAsync<T>(sd => sd
+                .Index(indexToScroll)
+                .Query(q => q.ConstructQueryContainerDescriptor(filters, fieldToSearch, valueToSearch))
+                .Sort(s => s.ConstructSortDescriptor(sort))
+                .From(from)
+                .Size(size));
 
             if (searchResponse == null || !searchResponse.Documents.Any())
             {
@@ -666,35 +483,22 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="fieldToSearch">(Optional) the name of the field in the document to search (e.g.: "customerId" or "animal.name")</param>
         /// <param name="valueToSearch">(Optional) the value to search for</param>
+        /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
         /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
         public async Task<long> Count<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
+          Tuple<string, string>[] filters = null,
           string index = null) where T : class
         {
             string indexToCount = IndexToSearch(index);
 
             try
             {
-                CountResponse countResponse;
-
-                // 'CountBySearch'
-                if (fieldToSearch != null && valueToSearch != null)
-                {
-                    countResponse =
-                      await _client.CountAsync<T>(c => c
-                        .Index(indexToCount)
-                        .Query(q => q
-                          .Match(m => m
-                            .Field(fieldToSearch)
-                            .Query(valueToSearch.ToString()))));
-                }
-                else
-                {
-                    countResponse =
-                        await _client.CountAsync<T>(c => c
-                        .Index(indexToCount));
-                }
+                CountResponse countResponse =
+                  await _client.CountAsync<T>(c => c
+                    .Index(indexToCount)
+                    .Query(q => q.ConstructQueryContainerDescriptor(filters, fieldToSearch, valueToSearch)));
 
                 return countResponse.Count;
             }
