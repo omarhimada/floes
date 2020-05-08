@@ -206,7 +206,7 @@ namespace FloES
                             DateTime.UtcNow.Subtract(TimeSpan.FromHours(listLastXHours.Value)))))
                     .Scroll(scrollTime));
             }
-            else if (listLastXDays != null)
+            else
             {
                 // Prevent attempt to scroll over a TimeSpan of zero
                 if (listLastXDays == 0)
@@ -592,9 +592,9 @@ namespace FloES
         /// <param name="page">The page of the DataGrid - default is 1</param>
         /// <param name="recordsOnPage">How many records each page of the DataGrid contains - default is 20</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
-        public async Task<IEnumerable<T>> SearchPaged<T>(
-          string fieldToSearch,
-          object valueToSearch,
+        public async Task<IEnumerable<T>> Page<T>(
+          string fieldToSearch = null,
+          object valueToSearch = null,
           int page = 1,
           int recordsOnPage = 20,
           string index = null) where T : class
@@ -626,15 +626,27 @@ namespace FloES
             int from = (page * recordsOnPage) - recordsOnPage;
             int size = recordsOnPage;
 
-            searchResponse =
-                await _client.SearchAsync<T>(sd => sd
-                .Index(indexToScroll)
-                .Query(q =>
-                    q.Match(c => c
-                    .Field(fieldToSearch)
-                    .Query(valueToSearch.ToString())))
-                .From(page)
-                .Size(recordsOnPage));
+            if (fieldToSearch != null && valueToSearch != null)
+            {
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .Query(q =>
+                      q.Match(c => c
+                        .Field(fieldToSearch)
+                        .Query(valueToSearch.ToString())))
+                    .From(page)
+                    .Size(size));
+            }
+            else
+            {
+                searchResponse =
+                  await _client.SearchAsync<T>(sd => sd
+                    .Index(indexToScroll)
+                    .MatchAll()
+                    .From(page)
+                    .Size(size));
+            }
 
             if (searchResponse == null || !searchResponse.Documents.Any())
             {
