@@ -635,7 +635,7 @@ namespace FloES
                       q.Match(c => c
                         .Field(fieldToSearch)
                         .Query(valueToSearch.ToString())))
-                    .From(page)
+                    .From(from)
                     .Size(size));
             }
             else
@@ -644,7 +644,7 @@ namespace FloES
                   await _client.SearchAsync<T>(sd => sd
                     .Index(indexToScroll)
                     .MatchAll()
-                    .From(page)
+                    .From(from)
                     .Size(size));
             }
 
