@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace FloES
@@ -197,7 +198,8 @@ namespace FloES
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
-                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                LogError(searchResponse);
+
                 return results;
             }
 
@@ -206,7 +208,8 @@ namespace FloES
             {
                 if (searchResponse.Documents != null && !searchResponse.IsValid)
                 {
-                    _logger?.LogError($"~ ~ ~ Floe received an error while listing (scrolling) {searchResponse.ServerError?.Error?.Reason}");
+                    LogError(searchResponse);
+
                     break;
                 }
 
@@ -271,7 +274,8 @@ namespace FloES
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
-                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                LogError(searchResponse);
+
                 return results;
             }
 
@@ -280,7 +284,8 @@ namespace FloES
             {
                 if (searchResponse.Documents != null && !searchResponse.IsValid)
                 {
-                    _logger?.LogError($"~ ~ ~ Floe received an error while searching (scrolling) {searchResponse.ServerError?.Error?.Reason}");
+                    LogError(searchResponse);
+
                     break;
                 }
 
@@ -350,7 +355,7 @@ namespace FloES
 
             if (searchResponse == null || string.IsNullOrEmpty(searchResponse.ScrollId))
             {
-                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
+                LogError(searchResponse);
             }
 
             return searchResponse;
@@ -361,7 +366,7 @@ namespace FloES
             //{
             //    if (searchResponse.Documents != null && !searchResponse.IsValid)
             //    {
-            //        _logger?.LogError($"~ ~ ~ Floe received an error while searching (scrolling) {searchResponse.ServerError?.Error?.Reason}");
+            //        LogError(searchResponse);
             //        break;
             //    }
 
@@ -467,8 +472,7 @@ namespace FloES
 
             if (searchResponse == null || !searchResponse.Documents.Any())
             {
-                _logger?.LogInformation($"~ ~ ~ Floe received a null search response or failed to scroll (index may not exist)");
-                return results;
+                LogError(searchResponse);
             }
 
             results.AddRange(searchResponse.Documents);
@@ -682,6 +686,20 @@ namespace FloES
             }
 
             return false;
+        }
+
+        private void LogError<T>(ISearchResponse<T> searchResponse) where T : class
+        {
+          StringBuilder errorBuilder = new StringBuilder();
+
+          errorBuilder.Append($"~ ~ ~ Floe received a null search response or failed to scroll");
+          if (!string.IsNullOrEmpty(searchResponse?.ServerError?.ToString()))
+          {
+            errorBuilder.Append(" - review error(s) below");
+            errorBuilder.AppendLine($"{searchResponse.ServerError}");
+          }
+
+          _logger?.LogError($"{errorBuilder}");
         }
 
         #region Disposable implementation
