@@ -97,7 +97,7 @@ async Task ReadItems(GridReadEventArgs args)
 ````
     
 ### Scrolling Manually 
-**(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List**
+**(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List)**
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
 ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
