@@ -16,9 +16,11 @@ namespace FloES
         /// <param name="sort">User-inputted sort tuple</param>
         public static SortDescriptor<T> ConstructSortDescriptor<T>(
           this SortDescriptor<T> sortDescriptor,
-          (string, string) sort) where T : class
+          (string, string)? sort) where T : class
         {
-            (string field, string direction) = sort;
+            if (sort == null) return sortDescriptor;
+
+            (string field, string direction) = sort.Value;
 
             // TODO: don't assume user is using default Nest camelCase behaviour
             field = char.ToLowerInvariant(field[0]) + field.Substring(1);
