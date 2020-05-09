@@ -64,7 +64,8 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>(
     listLastXHours: 4.5);
 ````
 
-### Pagination (e.g.: Telerik Blazor DataGrid)
+### Pagination 
+**(e.g.: Telerik Blazor DataGrid)**
 ````C#
 async Task ReadItems(GridReadEventArgs args)
 {
@@ -95,7 +96,8 @@ async Task ReadItems(GridReadEventArgs args)
 }
 ````
     
-### Scrolling manually (i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List
+### Scrolling Manually 
+**(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List**
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
 ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
