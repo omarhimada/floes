@@ -1,9 +1,9 @@
 # FloES
 FloES is a generic wrapper for common Elasticsearch operations, such as writing and reading documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
 
-**https://www.nuget.org/packages/FloES**
+**NuGet:** ##https://www.nuget.org/packages/FloES##
 
-**Example usage: instantiation (e.g.: eCommerce website)**
+###Instantiation (e.g.: orders for an eCommerce website)###
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
@@ -22,7 +22,7 @@ _ordersFloe = new Floe<ExampleOrdersService>(
     rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
 ````
 
-**Example usage: write, find 'Orders'**
+###Write, find 'Orders'###
 ````C#    
 // Write an order document to the default index with a rolling date (e.g.: idx-orders-2020-04-20)
 // You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage, with a smart numberOfBulkDocumentsToWriteAtOnce choice)
@@ -41,7 +41,7 @@ Order order = await _ordersFloe.Find<Order>(id: "1");
 
 ````
 
-**Example usage: listing and searching**
+###Listing and searching###
 ````C#
 
 // List all orders
@@ -62,8 +62,39 @@ IEnumerable<Order> orders = await _ordersFloe.Search<Order>(
     valueToSearch: 100,
     listLastXHours: 4.5);
 ````
+
+###Pagination (e.g.: Telerik Blazor DataGrid)###
+````C#
+async Task ReadItems(GridReadEventArgs args)
+{
+  (string, string)? sort = null;
+  if (args.Request.Sorts?.Any() == true)
+  {
+    string memberNameToUse = args.Request.Sorts.FirstOrDefault()?.Member;
+
+    // Convert Telerik 'Sorts' argument to tuple
+    sort =
+      args.Request.Sorts?
+        .Select(s =>
+          s.SortDirection == ListSortDirection.Ascending
+            ? (memberNameToUse, "asc")
+            : (memberNameToUse, "des"))
+        .FirstOrDefault();
+  }
+
+  // Paginate orders with 
+  _ordersGridData =
+    (await _ordersFloe.Page<Order>(
+      page: args.Request.Page,
+      recordsOnPage: _pageSize,
+      sort: sort
+      .ToList();
+
+  StateHasChanged();
+}
+````
     
-**Example usage: scrolling manually (i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List**
+###Scrolling manually (i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List###
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
 ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
@@ -100,7 +131,7 @@ while (continueScrolling && scrollCanada != null)
 await _ordersFloe.EndScroll(scrollCanada);
 ````
 
-**Example usage: delete test indices when debugging on development environment**
+###(Debugging/testing) delete indices###
 ````C#
 // DANGER: delete all indices and then dispose of the Floe capable of doing so
 {
@@ -112,7 +143,7 @@ await _ordersFloe.EndScroll(scrollCanada);
 }
 ````
 
-**Help! I'm writing duplicates!**
+###Help! I'm writing duplicates!###
 
 Make sure the document object you're writing has a unique "Id" parameter. Because of the asynchronous nature of `.Write`, and Elasticsearch clustering, by allowing Elasticsearch to automatically generate an "Id" parameter you run the risk of creating duplicate documents with their own unique IDs. An example is below:
 ````C#
