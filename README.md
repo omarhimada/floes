@@ -89,7 +89,7 @@ async Task ReadItems(GridReadEventArgs args)
     (await _ordersFloe.Page<Order>(
       page: args.Request.Page,
       recordsOnPage: _pageSize,
-      sort: sort
+      sort: sort)
       .ToList();
 
   StateHasChanged();
