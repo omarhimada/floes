@@ -168,8 +168,8 @@ namespace FloES
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         /// <param name="timeStampField">(Optional) the name of the time stamp field to consider - default is "timeStamp"</param>
         public async Task<IEnumerable<T>> List<T>(
-          Tuple<string, string>[] filters = null,
-          Tuple<string, string> sort = null,
+          (string, string)[] filters = default,
+          (string, string)? sort = default,
           double? listLastXHours = null,
           double? listLastXDays = null,
           string scrollTime = "60s",
@@ -244,7 +244,7 @@ namespace FloES
         public async Task<IEnumerable<T>> Search<T>(
           string fieldToSearch,
           object valueToSearch,
-          Tuple<string, string>[] filters = null,
+          (string, string)[] filters = default,
           double? searchLastXHours = null,
           double? searchLastXDays = null,
           string scrollTime = "60s",
@@ -325,7 +325,7 @@ namespace FloES
         public async Task<ISearchResponse<T>> BeginScroll<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
-          Tuple<string, string>[] filters = null,
+          (string, string)[] filters = default,
           int scrollForXDocuments = 1000,
           double? scrollLastXHours = null,
           double? scrollLastXDays = null,
@@ -429,8 +429,8 @@ namespace FloES
         public async Task<IEnumerable<T>> Page<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
-          Tuple<string, string>[] filters = null,
-          Tuple<string, string> sort = null,
+          (string, string)[] filters = default,
+          (string, string)? sort = default,
           int page = 1,
           int recordsOnPage = 20,
           string index = null) where T : class
@@ -492,7 +492,7 @@ namespace FloES
         public async Task<long> Count<T>(
           string fieldToSearch = null,
           object valueToSearch = null,
-          Tuple<string, string>[] filters = null,
+          (string, string)[] filters = default,
           string index = null) where T : class
         {
             string indexToCount = IndexToSearch(index);

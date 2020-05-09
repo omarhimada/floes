@@ -16,24 +16,21 @@ namespace FloES
         /// <param name="sort">User-inputted sort tuple</param>
         public static SortDescriptor<T> ConstructSortDescriptor<T>(
           this SortDescriptor<T> sortDescriptor,
-          Tuple<string, string> sort) where T : class
+          (string, string) sort) where T : class
         {
-            if (sort != null)
+            (string field, string direction) = sort;
+
+            // TODO: don't assume user is using default Nest camelCase behaviour
+            field = char.ToLowerInvariant(field[0]) + field.Substring(1);
+
+            switch (direction)
             {
-                (string field, string direction) = sort;
-
-                // TODO: don't assume user is using default Nest camelCase behaviour
-                field = char.ToLowerInvariant(field[0]) + field.Substring(1);
-
-                switch (direction)
-                {
-                    case "asc":
-                        sortDescriptor.Ascending(field);
-                        break;
-                    case "des":
-                        sortDescriptor.Descending(field);
-                        break;
-                }
+                case "asc":
+                    sortDescriptor.Ascending(field);
+                    break;
+                case "des":
+                    sortDescriptor.Descending(field);
+                    break;
             }
 
             return sortDescriptor;
@@ -52,7 +49,7 @@ namespace FloES
         /// <param name="timeStampField"></param>
         public static QueryContainerDescriptor<T> ConstructQueryContainerDescriptor<T>(
           this QueryContainerDescriptor<T> queryContainerDescriptor,
-          Tuple<string, string>[] filters,
+          (string, string)[] filters,
           string fieldToSearch = null,
           object valueToSearch = null,
           double? scrollLastXHours = null,
@@ -98,7 +95,7 @@ namespace FloES
         /// Construct the query functions based on user inputted filter tuples
         /// </summary>
         private static IEnumerable<Func<QueryContainerDescriptor<T>, QueryContainer>> ConstructFilters<T>(
-          Tuple<string, string>[] filters) where T : class
+          (string, string)[] filters) where T : class
         {
             IEnumerable<Func<QueryContainerDescriptor<T>, QueryContainer>> filterFunctions = null;
             if (filters != null)
