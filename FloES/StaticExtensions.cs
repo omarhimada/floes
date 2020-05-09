@@ -22,6 +22,9 @@ namespace FloES
             {
                 (string field, string direction) = sort;
 
+                // TODO: don't assume user is using default Nest camelCase behaviour
+                field = char.ToLowerInvariant(field[0]) + field.Substring(1);
+
                 switch (direction)
                 {
                     case "asc":
@@ -104,10 +107,13 @@ namespace FloES
                 {
                     (string field, string value) = filter;
 
+                    // TODO: don't assume user is using default Nest camelCase behaviour
+                    field = char.ToLowerInvariant(field[0]) + field.Substring(1);
+
                     QueryContainer FilterFunction(QueryContainerDescriptor<T> filterFunc) =>
-                filterFunc
-                  .Term(term => term.Field(field)
-                    .Value(value));
+                      filterFunc
+                        .Term(term => term.Field(field)
+                          .Value(value));
 
                     return (Func<QueryContainerDescriptor<T>, QueryContainer>)FilterFunction;
                 });
