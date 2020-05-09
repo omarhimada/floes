@@ -22,16 +22,30 @@ namespace FloES
 
             (string field, string direction) = sort.Value;
 
+            Type t = typeof(T);
+            System.Reflection.PropertyInfo propertyBeingSorted =
+              t.GetProperties()
+                .FirstOrDefault(prop =>
+                  prop.Name == field);
+
+            string fieldToUse = field;
+
+            // If we're sorting a string append ".keyword" 
+            if (propertyBeingSorted?.PropertyType.Name == typeof(string).Name)
+            {
+                fieldToUse += ".keyword";
+            }
+
             // TODO: don't assume user is using default Nest camelCase behaviour
-            field = char.ToLowerInvariant(field[0]) + field.Substring(1);
+            fieldToUse = char.ToLowerInvariant(fieldToUse[0]) + fieldToUse.Substring(1);
 
             switch (direction)
             {
                 case "asc":
-                    sortDescriptor.Ascending(field);
+                    sortDescriptor.Ascending(fieldToUse);
                     break;
                 case "des":
-                    sortDescriptor.Descending(field);
+                    sortDescriptor.Descending(fieldToUse);
                     break;
             }
 
