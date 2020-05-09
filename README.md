@@ -23,7 +23,7 @@ _ordersFloe = new Floe<ExampleOrdersService>(
     rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
 ````
 
-### Write & Find 'Order' documents from Elasticsearch
+### Write & Find 'Order' documents in Elasticsearch
 ````C#    
 // Write an order document to the default index with a rolling date (e.g.: idx-orders-2020-04-20)
 // You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage, with a smart numberOfBulkDocumentsToWriteAtOnce choice)
