@@ -10,7 +10,7 @@ namespace FloES
     /// <summary>
     /// Extend Floe to include IMemoryCache handling
     /// </summary>
-    public partial class Floe<T, N> where T : class
+    public partial class Floe<T> where T : class
     {
         /// <summary>
         /// Any time the Floe writes to IMemoryCache the associated cache key is appended to this list
