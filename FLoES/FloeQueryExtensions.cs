@@ -6,7 +6,7 @@ using Nest;
 
 namespace FloES
 {
-    static class StaticExtensions
+    static class FloeQueryExtensions
     {
         /// <summary>
         /// Construct the sort descriptor using the user inputted sort tuple

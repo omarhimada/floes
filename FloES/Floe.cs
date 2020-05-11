@@ -1,6 +1,7 @@
 ﻿using Amazon.Extensions.NETCore.Setup;
 using Elasticsearch.Net;
 using Elasticsearch.Net.Aws;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Nest;
 using Newtonsoft.Json;
@@ -16,7 +17,7 @@ namespace FloES
     /// Wrapper for a Nest ElasticClient with common Elasticsearch operations
     /// - can use with 'await using', and includes ILogger support
     /// </summary>
-    public class Floe<T> : IAsyncDisposable, IDisposable
+    public partial class Floe<T> : IAsyncDisposable, IDisposable where T : class
     {
         private bool _disposed;
 
@@ -167,15 +168,41 @@ namespace FloES
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to scroll - if none provided the default index will be used</param>
         /// <param name="timeStampField">(Optional) the name of the time stamp field to consider - default is "timeStamp"</param>
-        public async Task<IEnumerable<T>> List<T>(
+        /// <param name="memoryCache">(Optional, performance) provide your IMemoryCache implementation if you want to cache the Elasticsearch data returned (reducing the total number of scrolls to Elasticsearch if you make the same call within 15 minutes)</param>
+        public async Task<IEnumerable<T>> List(
           (string, string)[] filters = default,
           (string, string)? sort = default,
           double? listLastXHours = null,
           double? listLastXDays = null,
           string scrollTime = "60s",
           string index = null,
-          string timeStampField = "timeStamp") where T : class
+          string timeStampField = "timeStamp",
+          IMemoryCache memoryCache = null)
         {
+            #region Caching
+            // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
+            if (memoryCache != null)
+            {
+                dynamic cachedResults =
+                    RetrieveCachedElasticsearchData(
+                        memoryCache,
+                        CacheKeyFromParameters(
+                            filters: filters,
+                            sort: sort,
+                            xHours: listLastXHours,
+                            xDays: listLastXDays,
+                            scrollTime: scrollTime,
+                            index: index,
+                            timeStampField: timeStampField));
+
+                if (cachedResults != null &&
+                    cachedResults is IEnumerable<T>)
+                {
+                    return cachedResults as IEnumerable<T>;
+                }
+            }
+            #endregion
+
             string indexToScroll = IndexToSearch(index);
             List<T> results = new List<T>();
 
@@ -226,6 +253,24 @@ namespace FloES
 
             await EndScroll(searchResponse);
 
+            #region Caching
+            // If an IMemoryCache was provided to this method write the data returned to the cache, using the parameters as a cache key
+            if (memoryCache != null)
+            {
+                CacheElasticsearchData(
+                    memoryCache,
+                    results,
+                    CacheKeyFromParameters(
+                        filters: filters,
+                        sort: sort,
+                        xHours: listLastXHours,
+                        xDays: listLastXDays,
+                        scrollTime: scrollTime,
+                        index: index,
+                        timeStampField: timeStampField));
+            }
+            #endregion
+
             return results;
         }
 
@@ -241,7 +286,8 @@ namespace FloES
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
         /// <param name="timeStampField">(Optional) the name of the time stamp field to consider - default is "timeStamp"</param>
-        public async Task<IEnumerable<T>> Search<T>(
+        /// <param name="memoryCache">(Optional, performance) provide your IMemoryCache implementation if you want to cache the Elasticsearch data returned (reducing the total number of scrolls to Elasticsearch if you make the same call within 15 minutes)</param>
+        public async Task<IEnumerable<T>> Search(
           string fieldToSearch,
           object valueToSearch,
           (string, string)[] filters = default,
@@ -249,8 +295,34 @@ namespace FloES
           double? searchLastXDays = null,
           string scrollTime = "60s",
           string index = null,
-          string timeStampField = "timeStamp") where T : class
+          string timeStampField = "timeStamp",
+          IMemoryCache memoryCache = null)
         {
+            #region Caching
+            // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
+            if (memoryCache != null)
+            {
+                dynamic cachedResults =
+                    RetrieveCachedElasticsearchData(
+                        memoryCache,
+                        CacheKeyFromParameters(
+                            fieldToSearch: fieldToSearch,
+                            valueToSearch: valueToSearch,
+                            filters: filters,
+                            xHours: searchLastXHours,
+                            xDays: searchLastXDays,
+                            scrollTime: scrollTime,
+                            index: index,
+                            timeStampField: timeStampField));
+
+                if (cachedResults != null &&
+                    cachedResults is IEnumerable<T>)
+                {
+                    return cachedResults as IEnumerable<T>;
+                }
+            }
+            #endregion
+
             string indexToScroll = IndexToSearch(index);
             List<T> results = new List<T>();
 
@@ -302,6 +374,25 @@ namespace FloES
 
             await EndScroll(searchResponse);
 
+            #region Caching
+            // If an IMemoryCache was provided to this method write the data returned to the cache, using the parameters as a cache key
+            if (memoryCache != null)
+            {
+                CacheElasticsearchData(
+                    memoryCache,
+                    results,
+                    CacheKeyFromParameters(
+                        fieldToSearch: fieldToSearch,
+                        valueToSearch: valueToSearch,
+                        filters: filters,
+                        xHours: searchLastXHours,
+                        xDays: searchLastXDays,
+                        scrollTime: scrollTime,
+                        index: index,
+                        timeStampField: timeStampField));
+            }
+            #endregion
+
             return results;
         }
 
@@ -322,7 +413,7 @@ namespace FloES
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
         /// <param name="timeStampField">(Optional) the name of the time stamp field to consider - default is "timeStamp"</param>
-        public async Task<ISearchResponse<T>> BeginScroll<T>(
+        public async Task<ISearchResponse<T>> BeginScroll(
           string fieldToSearch = null,
           object valueToSearch = null,
           (string, string)[] filters = default,
@@ -331,7 +422,7 @@ namespace FloES
           double? scrollLastXDays = null,
           string scrollTime = "60s",
           string index = null,
-          string timeStampField = "timeStamp") where T : class
+          string timeStampField = "timeStamp")
         {
             string indexToScroll = IndexToSearch(index);
 
@@ -343,13 +434,13 @@ namespace FloES
                 .Index(indexToScroll)
                 .From(0)
                 .Take(scrollForXDocuments)
-                .Query(q => 
+                .Query(q =>
                   q.ConstructQueryContainerDescriptor(
-                      filters, 
-                      fieldToSearch, 
-                      valueToSearch, 
-                      hours, 
-                      days, 
+                      filters,
+                      fieldToSearch,
+                      valueToSearch,
+                      hours,
+                      days,
                       timeStampField))
                 .Scroll(scrollTime));
 
@@ -395,9 +486,9 @@ namespace FloES
         /// <typeparam name="T"></typeparam>
         /// <param name="searchResponse">Pre-existing ISearchResponse to continue scrolling</param>
         /// <param name="scrollTime">(Optional) TTL of the scroll until another List is called - default is 60s</param>
-        public async Task<ISearchResponse<T>> ContinueScroll<T>(
+        public async Task<ISearchResponse<T>> ContinueScroll(
           ISearchResponse<T> searchResponse,
-          string scrollTime = "60s") where T : class =>
+          string scrollTime = "60s") =>
             await _client.ScrollAsync<T>(scrollTime, searchResponse.ScrollId);
 
         /// <summary>
@@ -408,8 +499,8 @@ namespace FloES
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="searchResponse">Pre-existing ISearchResponse used to clear the scroll</param>
-        public async Task EndScroll<T>(
-          ISearchResponse<T> searchResponse) where T : class =>
+        public async Task EndScroll(
+          ISearchResponse<T> searchResponse) =>
             await _client.ClearScrollAsync(new ClearScrollRequest(searchResponse.ScrollId));
 
         /// <summary>
@@ -426,15 +517,41 @@ namespace FloES
         /// <param name="page">The page of the DataGrid - default is 1</param>
         /// <param name="recordsOnPage">How many records each page of the DataGrid contains - default is 20</param>
         /// <param name="index">(Optional) index to search - if none provided the default index will be used</param>
-        public async Task<IEnumerable<T>> Page<T>(
+        /// <param name="memoryCache">(Optional, performance) provide your IMemoryCache implementation if you want to cache the Elasticsearch data returned (reducing the total number of scrolls to Elasticsearch if you make the same call within 15 minutes)</param>
+        public async Task<IEnumerable<T>> Page(
           string fieldToSearch = null,
           object valueToSearch = null,
           (string, string)[] filters = default,
           (string, string)? sort = default,
           int page = 1,
           int recordsOnPage = 20,
-          string index = null) where T : class
+          string index = null,
+          IMemoryCache memoryCache = null)
         {
+            #region Caching
+            // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
+            if (memoryCache != null)
+            {
+                dynamic cachedResults =
+                    RetrieveCachedElasticsearchData(
+                        memoryCache,
+                        CacheKeyFromParameters(
+                            fieldToSearch: fieldToSearch,
+                            valueToSearch: valueToSearch,
+                            filters: filters,
+                            sort: sort,
+                            index: index,
+                            page: page,
+                            recordsOnPage: recordsOnPage));
+
+                if (cachedResults != null &&
+                    cachedResults is IEnumerable<T>)
+                {
+                    return cachedResults as IEnumerable<T>;
+                }
+            }
+            #endregion
+
             string indexToScroll = IndexToSearch(index);
             ISearchResponse<T> searchResponse = null;
             List<T> results = new List<T>();
@@ -477,6 +594,24 @@ namespace FloES
 
             results.AddRange(searchResponse.Documents);
 
+            #region Caching
+            // If an IMemoryCache was provided to this method write the data returned to the cache, using the parameters as a cache key
+            if (memoryCache != null)
+            {
+                CacheElasticsearchData(
+                    memoryCache,
+                    results,
+                    CacheKeyFromParameters(
+                        fieldToSearch: fieldToSearch,
+                        valueToSearch: valueToSearch,
+                        filters: filters,
+                        sort: sort,
+                        index: index,
+                        page: page,
+                        recordsOnPage: recordsOnPage));
+            }
+            #endregion
+
             return results;
         }
 
@@ -489,11 +624,11 @@ namespace FloES
         /// <param name="valueToSearch">(Optional) the value to search for</param>
         /// <param name="filters">(Optional) array of string tuples - (fieldName, valueToFilter)</param>
         /// <param name="index">(Optional) index to count - if none provided the default index will be used</param>
-        public async Task<long> Count<T>(
+        public async Task<long> Count(
           string fieldToSearch = null,
           object valueToSearch = null,
           (string, string)[] filters = default,
-          string index = null) where T : class
+          string index = null)
         {
             string indexToCount = IndexToSearch(index);
 
@@ -527,7 +662,7 @@ namespace FloES
         /// <param name="document">Document to write to the Elasticsearch index</param>
         /// <param name="allowDuplicates">(Optional) if true the documents about to be bulk written will not be validated for duplicates (side-effect of async operations) - default is false</param>
         /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
-        public async Task Write<T>(
+        public async Task Write(
           T document,
           bool allowDuplicates = false,
           string index = null)
@@ -584,7 +719,7 @@ namespace FloES
         /// </summary>
         /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="index">(Optional) index to write to - if none provided the default index will be used</param>
-        public async Task WriteUnwritten<T>(
+        public async Task WriteUnwritten(
           bool allowDuplicates = false,
           string index = null)
         {
@@ -633,7 +768,7 @@ namespace FloES
         /// <typeparam name="T">Index POCO</typeparam>
         /// <param name="id">ID of the document</param>
         /// <returns>Null if no document was found</returns>
-        public async Task<T> Find<T>(string id) where T : class
+        public async Task<T> Find(string id)
         {
             GetResponse<T> response = await _client.GetAsync<T>(id);
 
@@ -688,18 +823,18 @@ namespace FloES
             return false;
         }
 
-        private void LogError<T>(ISearchResponse<T> searchResponse) where T : class
+        private void LogError(ISearchResponse<T> searchResponse)
         {
-          StringBuilder errorBuilder = new StringBuilder();
+            StringBuilder errorBuilder = new StringBuilder();
 
-          errorBuilder.Append($"~ ~ ~ Floe received a null search response or failed to scroll");
-          if (!string.IsNullOrEmpty(searchResponse?.ServerError?.ToString()))
-          {
-            errorBuilder.Append(" - review error(s) below");
-            errorBuilder.AppendLine($"{searchResponse.ServerError}");
-          }
+            errorBuilder.Append($"~ ~ ~ Floe received a null search response or failed to scroll");
+            if (!string.IsNullOrEmpty(searchResponse?.ServerError?.ToString()))
+            {
+                errorBuilder.Append(" - review error(s) below");
+                errorBuilder.AppendLine($"{searchResponse.ServerError}");
+            }
 
-          _logger?.LogError($"{errorBuilder}");
+            _logger?.LogError($"{errorBuilder}");
         }
 
         #region Disposable implementation
