@@ -14,7 +14,7 @@ AWSOptions awsOptions = new AWSOptions
 };
 
 // Instantiate a new Floe for our 'Order' documents
-_ordersFloe = new Floe<ExampleOrdersService>(
+_ordersFloe = new Floe<Order>(
     awsOptions: awsOptions,
     esClusterUri: new Uri(_config.AwsElasticsearchEndpoint),
     defaultIndex: "idx-orders",
@@ -27,7 +27,7 @@ _ordersFloe = new Floe<ExampleOrdersService>(
 ````C#    
 // Write an order document to the default index with a rolling date (e.g.: idx-orders-2020-04-20)
 // You can write many asynchronously by calling this in a loop (safe due to BulkAsync usage, with a smart numberOfBulkDocumentsToWriteAtOnce choice)
-await _ordersFloe.Write<Order>(order);
+await _ordersFloe.Write(order);
 
 // Choosing a good numberOfBulkDocumentsToWriteAtOnce:
 // Writing 10,000 documents/hour -> numberOfBulkDocumentsToWriteAtOnce: ~50
@@ -35,10 +35,10 @@ await _ordersFloe.Write<Order>(order);
 // tl;dr: use your head!
 
 // Write any remaining unwritten documents from the buffer (e.g.: call this once after a very long loop to finish up)
-await _ordersFloe.WriteUnwritten<Order>();
+await _ordersFloe.WriteUnwritten();
 
 // Get an order
-Order order = await _ordersFloe.Find<Order>(id: "1");
+Order order = await _ordersFloe.Find(id: "1");
 
 ````
 
@@ -46,19 +46,19 @@ Order order = await _ordersFloe.Find<Order>(id: "1");
 ````C#
 
 // List all orders
-IEnumerable<Order> orders = await _ordersFloe.List<Order>();
+IEnumerable<Order> orders = await _ordersFloe.List();
 
 // List all orders for the last 24 hours
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLastXHours: 24);
+IEnumerable<Order> orders = await _ordersFloe.List(listLastXHours: 24);
 
 // List all orders for the last 7.5 days
-IEnumerable<Order> orders = await _ordersFloe.List<Order>(listLastXDays: 7.5);
+IEnumerable<Order> orders = await _ordersFloe.List(listLastXDays: 7.5);
 
 // Search for orders of SKU 100
-IEnumerable<Order> orders = await _ordersFloe.Search<Order>("sku", 100);
+IEnumerable<Order> orders = await _ordersFloe.Search("sku", 100);
 
 // Search for orders of SKU 100 for the last 4.5 hours
-IEnumerable<Order> orders = await _ordersFloe.Search<Order>(
+IEnumerable<Order> orders = await _ordersFloe.Search(
     fieldToSearch: "sku", 
     valueToSearch: 100,
     listLastXHours: 4.5);
@@ -86,7 +86,7 @@ async Task ReadItems(GridReadEventArgs args)
 
   // Paginate orders while sorting
   _ordersGridData =
-    (await _ordersFloe.Page<Order>(
+    (await _ordersFloe.Page(
       page: args.Request.Page,
       recordsOnPage: _pageSize,
       sort: sort)
@@ -100,7 +100,7 @@ async Task ReadItems(GridReadEventArgs args)
 **(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List)**
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
-ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll<Order>(
+ISearchResponse<Order> scrollCanada = await _ordersFloe.BeginScroll(
     fieldToSearch: "region", 
     valueToSearch: "Canada",
     scrollForXDocuments: 1000,
@@ -126,7 +126,7 @@ while (continueScrolling && scrollCanada != null)
         _yourLogger.LogInformation($"We got another 1000 orders from Elasticsearch!");
         
         // Continue the scroll for the next set of orders
-        scrollCanada = await _ordersFloe.ContinueScroll<Order>(scrollCanada);
+        scrollCanada = await _ordersFloe.ContinueScroll(scrollCanada);
     }
 }
 
@@ -168,5 +168,5 @@ Log log = new Log
 };
 
 // No duplicates will be created since we are specifying the ID ourselves
-await _logsFloe.Write<Log>(log);
+await _logsFloe.Write(log);
 ````
