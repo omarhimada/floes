@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <Version>1.4.6</Version>
+    <Version>1.4.7</Version>
     <PackOnBuild>true</PackOnBuild>
     <Authors>Omar Himada</Authors>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -19,14 +19,17 @@
 
   <PropertyGroup>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<AssemblyVersion>1.4.6.0</AssemblyVersion>
+		<AssemblyVersion>1.4.7.0</AssemblyVersion>
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<FileVersion>1.4.6.0</FileVersion>
-		<PackageReleaseNotes>1.4.6: Fixed a bug with sorting strings (will use .keyword suffix now)
-1.4.5: Newer C# 7.0 tuples
-1.4.3: Better error logging
-1.4.2: Pagination bugs fixed
-1.4.0: Sorting &amp; filtering introduced + large refactoring/simplification</PackageReleaseNotes>
+		<FileVersion>1.4.7.0</FileVersion>
+		<PackageReleaseNotes>
+            1.4.7: Fixed generics implementation and introduced IMemoryCache integration
+            1.4.6: Fixed a bug with sorting strings (will use .keyword suffix now)
+            1.4.5: Newer C# 7.0 tuples
+            1.4.3: Better error logging
+            1.4.2: Pagination bugs fixed
+            1.4.0: Sorting &amp; filtering introduced + large refactoring/simplification
+        </PackageReleaseNotes>
 	</PropertyGroup>
 
   <ItemGroup>
