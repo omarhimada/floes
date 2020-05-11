@@ -17,14 +17,14 @@ namespace FloES
     /// Wrapper for a Nest ElasticClient with common Elasticsearch operations
     /// - can use with 'await using', and includes ILogger support
     /// </summary>
-    public partial class Floe<T> : IAsyncDisposable, IDisposable where T : class
+    public partial class Floe<T, N> : IAsyncDisposable, IDisposable where T : class
     {
         private bool _disposed;
 
         /// <summary>
         /// Optional logger
         /// </summary>
-        private readonly ILogger<T> _logger;
+        private readonly ILogger<N> _logger;
 
         /// <summary>
         /// The single instance of ElasticClient that lives as long as this Floe object does
@@ -90,7 +90,7 @@ namespace FloES
             string defaultIndex = null,
             int numberOfBulkDocumentsToWriteAtOnce = _defaultNumberOfBulkDocumentsToWriteAtOnce,
             bool rollingDate = false,
-            ILogger<T> logger = null)
+            ILogger<N> logger = null)
         {
             if (!string.IsNullOrEmpty(defaultIndex))
             {
@@ -127,7 +127,7 @@ namespace FloES
             string defaultIndex = null,
             int numberOfBulkDocumentsToWriteAtOnce = _defaultNumberOfBulkDocumentsToWriteAtOnce,
             bool rollingDate = false,
-            ILogger<T> logger = null)
+            ILogger<N> logger = null)
         {
             if (awsOptions == null)
             {
