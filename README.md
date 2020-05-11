@@ -1,10 +1,12 @@
 # FloES
 FloES is a generic wrapper for common Elasticsearch operations, such as writing, reading, searching, and paginating documents, using Nest & Elasticsearch.Net.AWS. Includes ILogger support
 
+***Breaking changes:*** *recent versions (1.4.x) include a large refactoring and cleanup of the generics implementation.*
+
 ### NuGet
 **https://www.nuget.org/packages/FloES**
 
-### Get Started
+## Get Started
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
@@ -64,7 +66,7 @@ IEnumerable<Order> orders = await _ordersFloe.Search(
     listLastXHours: 4.5);
 ````
 
-### Pagination 
+## Pagination 
 **(e.g.: Telerik Blazor DataGrid)**
 ````C#
 async Task ReadItems(GridReadEventArgs args)
@@ -96,7 +98,7 @@ async Task ReadItems(GridReadEventArgs args)
 }
 ````
     
-### Scrolling Manually 
+## Scrolling Manually 
 **(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List)**
 ````C#
 // Begin a scroll for all orders in Canada for the last year, getting 1000 orders at a time
@@ -133,6 +135,7 @@ while (continueScrolling && scrollCanada != null)
 // End the scroll
 await _ordersFloe.EndScroll(scrollCanada);
 ````
+---
 
 ### (For debugging/testing) delete all indices (excludes system indices)
 ````C#
