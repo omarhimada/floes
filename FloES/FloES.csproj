@@ -9,12 +9,12 @@
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <Owners>Omar Himada</Owners>
     <PackageProjectUrl>https://github.com/omarhimada/floes</PackageProjectUrl>
-    <Summary>FloES is a layer on top of Nest &amp; Elasticsearch.Net.AWS, with logging support, that abstracts away common operations such as writing &amp; finding documents</Summary>
+    <Summary>FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest &amp; Elasticsearch.Net.AWS, and includes ILogger support</Summary>
     <PackageTags>elasticsearch nest aws</PackageTags>
     <Title>FloES</Title>
     <RepositoryUrl>https://github.com/omarhimada/floes</RepositoryUrl>
     <PackageId>FloES</PackageId>
-    <Description>FloES is a generic wrapper for common Elasticsearch operations, such as writing and reading documents, using Nest &amp; Elasticsearch.Net.AWS. Includes ILogger support</Description>
+    <Description>FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest &amp; Elasticsearch.Net.AWS, and includes ILogger support</Description>
   </PropertyGroup>
 
   <PropertyGroup>
