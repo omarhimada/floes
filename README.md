@@ -1,4 +1,7 @@
 # FloES
+
+[![Join the chat at https://gitter.im/omarhimada/FloES](https://badges.gitter.im/omarhimada/FloES.svg)](https://gitter.im/omarhimada/FloES?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest & Elasticsearch.Net.AWS, and includes ILogger support 
 
 ***Breaking changes:*** *recent versions (1.4.x) include a large refactoring and cleanup of the generics implementation.*
