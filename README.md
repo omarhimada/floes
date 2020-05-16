@@ -2,7 +2,7 @@
 
 [![Join the chat at https://gitter.im/omarhimada/FloES](https://badges.gitter.im/omarhimada/FloES.svg)](https://gitter.im/omarhimada/FloES?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest & Elasticsearch.Net.AWS, and includes ILogger support 
+FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest & Elasticsearch.Net, supports AWS, and includes ILogger support.
 
 ***Breaking changes:*** *recent versions (1.4.x) include a large refactoring and cleanup of the generics implementation.*
 
@@ -10,6 +10,20 @@ FloES is a generic wrapper for common Elasticsearch operations, such as writing,
 **https://www.nuget.org/packages/FloES**
 
 ## Get Started
+### Option A: 
+#### Construct your Floe with an existing Nest.ElasticClient
+````C#
+// Instantiate a new Floe for our 'Order' documents
+_ordersFloe = new Floe<Order>(
+    client: elasticClient,
+    defaultIndex: "idx-orders",
+    logger: _logger, // optionally pass in your ILogger to get automatic logs
+    numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
+    rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
+````
+
+### Option B: 
+#### Construct your Floe with AWSOptions and a cluster URI
 ````C#
 // Your AWSOptions
 AWSOptions awsOptions = new AWSOptions
@@ -27,6 +41,8 @@ _ordersFloe = new Floe<Order>(
     numberOfBulkDocumentsToWriteAtOnce: 3, // pick a higher number if you're writing lots of documents very rapidly
     rollingDate: true); // documents will be written to indices with rolling dates (e.g.: idx-orders-2020-04-20)
 ````
+
+---
 
 ### Write & Find 'Order' documents in Elasticsearch
 ````C#    
@@ -69,6 +85,8 @@ IEnumerable<Order> orders = await _ordersFloe.Search(
     listLastXHours: 4.5);
 ````
 
+---
+
 ## Pagination 
 **(e.g.: Telerik Blazor DataGrid)**
 ````C#
@@ -100,6 +118,8 @@ async Task ReadItems(GridReadEventArgs args)
   StateHasChanged();
 }
 ````
+
+---
     
 ## Scrolling Manually 
 **(i.e.: use this if you want to do some operation during the scroll. Otherwise just use Search or List)**
@@ -138,6 +158,7 @@ while (continueScrolling && scrollCanada != null)
 // End the scroll
 await _ordersFloe.EndScroll(scrollCanada);
 ````
+
 ---
 
 ### (For debugging/testing) delete all indices (excludes system indices)
@@ -151,6 +172,8 @@ await _ordersFloe.EndScroll(scrollCanada);
     await temporaryDeleteIndexFloe.DeleteAllIndices();
 }
 ````
+
+---
 
 ### Help! I'm writing duplicates!
 
