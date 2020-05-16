@@ -180,20 +180,24 @@ namespace FloES
           IMemoryCache memoryCache = null)
         {
             #region Caching
+            string _cacheKeyFromParameters = null;
             // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
             if (memoryCache != null)
             {
+                _cacheKeyFromParameters =
+                    CacheKeyFromParameters(
+                        filters: filters,
+                        sort: sort,
+                        xHours: listLastXHours,
+                        xDays: listLastXDays,
+                        scrollTime: scrollTime,
+                        index: index,
+                        timeStampField: timeStampField);
+
                 dynamic cachedResults =
                     RetrieveCachedElasticsearchData(
                         memoryCache,
-                        CacheKeyFromParameters(
-                            filters: filters,
-                            sort: sort,
-                            xHours: listLastXHours,
-                            xDays: listLastXDays,
-                            scrollTime: scrollTime,
-                            index: index,
-                            timeStampField: timeStampField));
+                        _cacheKeyFromParameters);
 
                 if (cachedResults != null &&
                     cachedResults is IEnumerable<T>)
@@ -260,14 +264,7 @@ namespace FloES
                 CacheElasticsearchData(
                     memoryCache,
                     results,
-                    CacheKeyFromParameters(
-                        filters: filters,
-                        sort: sort,
-                        xHours: listLastXHours,
-                        xDays: listLastXDays,
-                        scrollTime: scrollTime,
-                        index: index,
-                        timeStampField: timeStampField));
+                    _cacheKeyFromParameters);
             }
             #endregion
 
@@ -299,21 +296,25 @@ namespace FloES
           IMemoryCache memoryCache = null)
         {
             #region Caching
+            string _cacheKeyFromParameters = null;
             // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
             if (memoryCache != null)
             {
+                _cacheKeyFromParameters =
+                    CacheKeyFromParameters(
+                        fieldToSearch: fieldToSearch,
+                        valueToSearch: valueToSearch,
+                        filters: filters,
+                        xHours: searchLastXHours,
+                        xDays: searchLastXDays,
+                        scrollTime: scrollTime,
+                        index: index,
+                        timeStampField: timeStampField);
+
                 dynamic cachedResults =
                     RetrieveCachedElasticsearchData(
                         memoryCache,
-                        CacheKeyFromParameters(
-                            fieldToSearch: fieldToSearch,
-                            valueToSearch: valueToSearch,
-                            filters: filters,
-                            xHours: searchLastXHours,
-                            xDays: searchLastXDays,
-                            scrollTime: scrollTime,
-                            index: index,
-                            timeStampField: timeStampField));
+                        _cacheKeyFromParameters);
 
                 if (cachedResults != null &&
                     cachedResults is IEnumerable<T>)
@@ -381,15 +382,7 @@ namespace FloES
                 CacheElasticsearchData(
                     memoryCache,
                     results,
-                    CacheKeyFromParameters(
-                        fieldToSearch: fieldToSearch,
-                        valueToSearch: valueToSearch,
-                        filters: filters,
-                        xHours: searchLastXHours,
-                        xDays: searchLastXDays,
-                        scrollTime: scrollTime,
-                        index: index,
-                        timeStampField: timeStampField));
+                    _cacheKeyFromParameters);
             }
             #endregion
 
@@ -472,7 +465,7 @@ namespace FloES
             //    }
             //}
 
-            //await EndSearch(searchResponse);
+            //await EndScroll(searchResponse);
 
             //return results;
             #endregion
@@ -529,20 +522,24 @@ namespace FloES
           IMemoryCache memoryCache = null)
         {
             #region Caching
+            string _cacheKeyFromParameters = null;
             // If an IMemoryCache was provided attempt to retrieve any cached data (for the same parameters)
             if (memoryCache != null)
             {
+                _cacheKeyFromParameters =
+                    CacheKeyFromParameters(
+                        fieldToSearch: fieldToSearch,
+                        valueToSearch: valueToSearch,
+                        filters: filters,
+                        sort: sort,
+                        index: index,
+                        page: page,
+                        recordsOnPage: recordsOnPage);
+
                 dynamic cachedResults =
                     RetrieveCachedElasticsearchData(
                         memoryCache,
-                        CacheKeyFromParameters(
-                            fieldToSearch: fieldToSearch,
-                            valueToSearch: valueToSearch,
-                            filters: filters,
-                            sort: sort,
-                            index: index,
-                            page: page,
-                            recordsOnPage: recordsOnPage));
+                        _cacheKeyFromParameters);
 
                 if (cachedResults != null &&
                     cachedResults is IEnumerable<T>)
@@ -601,14 +598,7 @@ namespace FloES
                 CacheElasticsearchData(
                     memoryCache,
                     results,
-                    CacheKeyFromParameters(
-                        fieldToSearch: fieldToSearch,
-                        valueToSearch: valueToSearch,
-                        filters: filters,
-                        sort: sort,
-                        index: index,
-                        page: page,
-                        recordsOnPage: recordsOnPage));
+                    _cacheKeyFromParameters);
             }
             #endregion
 
@@ -757,8 +747,7 @@ namespace FloES
 
                 _logger?.LogError(errorMessage);
 
-                // ReSharper disable once PossibleIntendedRethrow
-                throw exception;
+                throw;
             }
         }
 
