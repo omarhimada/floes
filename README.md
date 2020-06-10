@@ -148,7 +148,7 @@ while (continueScrolling && scrollCanada != null)
     {
         // Do something with your 1000 orders before continuing the scroll
         _yourResults.AddRange(scrollCanada.Documents);
-        _yourProgressIndicator.IndicateScrollProgress(yourResults.Count);
+        _yourProgressIndicator.IndicateScrollProgress(_yourResults.Count);
         _yourLogger.LogInformation($"We got another 1000 orders from Elasticsearch!");
         
         // Continue the scroll for the next set of orders
