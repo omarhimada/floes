@@ -1,7 +1,6 @@
 # FloES
 
 ![Nuget](https://img.shields.io/nuget/dt/FloES?logo=nuget&style=flat-square)
-[![Join the chat at https://gitter.im/omarhimada/FloES](https://badges.gitter.im/omarhimada/FloES.svg)](https://gitter.im/omarhimada/FloES?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 FloES is a generic wrapper for common Elasticsearch operations, such as writing, finding, searching, listing and paginating documents. Uses Nest & Elasticsearch.Net, supports AWS, and includes ILogger support.
 
